@@ -24,6 +24,21 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validation stricte du nom
+    const trimmedName = fullName.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      toast.error('Le nom doit contenir entre 2 et 50 caractères');
+      return;
+    }
+
+    // Validation stricte de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Veuillez entrer une adresse email valide');
+      return;
+    }
+
+    // Validation stricte du mot de passe
     if (password.length < 6) {
       toast.error('Le mot de passe doit contenir au moins 6 caractères');
       return;
@@ -39,11 +54,11 @@ export default function RegisterPage() {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: trimmedName,
           },
         },
       });
@@ -59,11 +74,10 @@ export default function RegisterPage() {
 
       if (data.user && data.session) {
         setUser(data.user, data.session.access_token);
-        toast.success('Compte créé avec succès ! Bienvenue 🎉');
+        toast.success('Compte créé avec succès, bienvenue');
         router.replace('/dashboard');
       } else if (data.user && !data.session) {
-        // Confirmation email requise
-        toast.success('Compte créé ! Vérifiez votre email pour confirmer votre inscription.');
+        toast.success('Compte créé. Vérifiez votre email pour confirmer votre inscription.');
         router.replace('/login');
       }
     } catch {
@@ -94,6 +108,8 @@ export default function RegisterPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required 
+              minLength={2}
+              maxLength={50}
               autoComplete="name"
             />
           </div>

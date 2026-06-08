@@ -42,7 +42,7 @@ export default function LoginPage() {
 
       if (data.user && data.session) {
         setUser(data.user, data.session.access_token);
-        toast.success('Connexion réussie !');
+        toast.success('Connexion réussie');
         router.replace('/dashboard');
       }
     } catch {

@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/authStore';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
@@ -28,10 +29,16 @@ export default function SettingsPage() {
   const user = useAuthStore(state => state.user);
   const { theme, setTheme } = useTheme();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Continuer même si la déconnexion Supabase échoue (mode hors-ligne)
+    }
     logout();
     toast.success('Déconnexion réussie');
-    router.push('/login');
+    router.replace('/login');
   };
 
   const toggleTheme = () => {
@@ -90,7 +97,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="font-semibold text-lg">{displayName}</h2>
-            <p className="text-sm text-muted-foreground">{user?.phone || '+224 ...'}</p>
+            <p className="text-sm text-muted-foreground">{user?.email || ''}</p>
           </div>
         </div>
 
