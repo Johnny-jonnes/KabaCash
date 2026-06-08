@@ -1,0 +1,333 @@
+KabaCash
+Application de Gestion des Dépenses
+Cahier des Charges Fonctionnel et Technique
+Solution de gestion financiere personnelle et micro-entrepreneuriale
+Version
+1.0 — Version initiale
+Date
+Mai 2025
+Contexte
+Marche guineeen — Conakry et regions
+Cible
+Particuliers et micro-entrepreneurs
+Statut
+Draft pour validation
+Table des matieres
+1. Contexte et objectifs du projet
+1.1 Contexte general
+La Guinee connait une forte penetration des services de mobile money (MTN Momo, Orange Money) mais reste sous-equipee en outils de gestion financiere personnelle adaptes a la realite locale : usage majoritaire du cash, revenus irreguliers, faible bancarisation, connectivite Internet limitee dans certaines zones.
+KabaCash repond a ce besoin en proposant une application mobile et web simple, en francais, pensee pour les habitudes financieres guineennes.
+1.2 Objectifs globaux
+Permettre a un particulier ou micro-entrepreneur de suivre ses entrees et sorties d'argent en temps reel.
+Planifier un budget mensuel ou hebdomadaire par categorie de depense.
+Identifier les postes de depense qui consomment le plus le budget.
+Exporter des rapports simples (PDF / Excel) pour les banques, partenaires ou investisseurs.
+Fonctionner en mode hors-ligne pour les zones a connectivite limitee.
+1.3 Personas cibles
+Deux profils principaux ont ete identifies :
+Particulier urbain : employe, etudiant ou menagere a Conakry souhaitant mieux controler ses depenses quotidiennes (marche, transport, recharge).
+Micro-entrepreneur : gerant d'une boutique, d'un kiosque ou d'une activite informelle ayant besoin d'une comptabilite de base pour ses flux de tresorerie.
+2. Fonctionnalites de base (Must-have)
+2.1 Gestion des comptes et monnaies
+L'utilisateur peut creer et gerer plusieurs comptes correspondant a ses differents porte-monnaies :
+Especes (cash)
+Mobile money : MTN Momo, Orange Money, Cellcom Money, etc.
+Compte bancaire classique
+Compte professionnel / caisse du commerce
+La devise de base est le Franc Guineen (GNF). Une option de saisie en devise etrangere (USD, EUR) est disponible pour les transactions d'import/export, avec taux de change manuel ou automatique (si Internet disponible).
+2.2 Saisie et importation des transactions
+2.2.1 Saisie manuelle
+Montant, date, heure (facultatif), categorie, compte source, beneficiaire ou commentaire libre.
+Saisie rapide depuis l'ecran d'accueil (bouton flottant +).
+Transactions recurrentes : loyer mensuel, abonnements — saisie automatique programmee.
+2.2.2 Import de donnees
+Import CSV depuis relevés bancaires ou relevés wallet mobile money.
+Import Excel (.xlsx) pour les utilisateurs avances.
+Mappage semi-automatique des colonnes lors de l'import.
+2.2.3 Categories predefinies
+Categories locales preconfigurees (personnalisables) :
+Alimentation / Marche
+Loyer / Logement
+Transport (taxi, moto, carburant, bus interurbain)
+Sante et pharmacie
+Education et scolarite
+Recharge telephone et Internet
+Envoi d'argent (transfert famille, diaspora)
+Achat telephone / electronique
+Salaires et charges (mode micro-entrepreneur)
+Fournisseurs et achats marchandises
+Business / Investissement
+Loisirs et sorties
+Autres (categorie generique)
+2.3 Suivi de budget
+Creation de budgets mensuels et hebdomadaires par categorie (ex. : 300 000 GNF pour nourriture).
+Indicateurs visuels : barres colorees (vert > jaune > rouge) et jauges pour le reste a depenser.
+Alertes configurables de depassement de budget : notification push, SMS (important hors Internet) et notification locale.
+Vue comparative budget prevu vs. reel sur le mois ou la semaine.
+Historique des budgets des mois passes.
+2.4 Tableau de bord et rapports
+2.4.1 Tableau de bord
+Vue synthetique : solde global, total revenus du mois, total depenses du mois.
+Graphique camembert par categorie de depense.
+Courbe chronologique des depenses sur 30 jours.
+Indicateur "Jour le plus depensier" du mois.
+Miniature de chaque compte avec son solde en temps reel.
+2.4.2 Rapports exportables
+Rapport mensuel PDF : resume visuel avec graphiques et tableau des transactions.
+Export CSV compatible Excel, LibreOffice et Google Sheets.
+Historique exportable sur 3 a 6 mois.
+Rapport personnalise sur une periode libre (du ... au ...).
+Signature numerique optionnelle du PDF pour les dossiers de micro-credit.
+3. Fonctionnalites avancees (Phase 2)
+3.1 Analyse comportementale et recommandations IA
+Detection des tendances : categories en hausse, depenses inhabituelles ou hors budget.
+Alertes intelligentes : "Votre budget nourriture est 40 % plus eleve que vos 3 derniers mois."
+Score de sante financiere hebdomadaire (ex. : 7/10) accompagne d'un conseil simple.
+Suggestions personnalisees : "En reduisant vos recharges telephoniques de 20%, vous economiseriez 50 000 GNF par mois."
+Modele IA leger fonctionnant partiellement hors-ligne (modele embarque).
+3.2 Objectifs et epargne
+Creation d'objectifs nommes : "Reparer la voiture", "Achat telephone", "Fonds d'urgence".
+Montant cible, echeance et versements progressifs.
+Compteur visuel de progression avec pourcentage et jours restants.
+Rappels automatiques pour contribuer a l'objectif.
+Calcul automatique du montant a epargner par semaine ou par mois pour atteindre l'objectif.
+3.3 Gestion multi-utilisateurs et micro-entreprise
+Compte principal + sous-comptes pour la famille ou la petite structure.
+Roles differencies : administrateur, membre consultation seule, membre saisie.
+Caisse du magasin distincte des depenses personnelles.
+Suivi des salaires, avances et charges des employes.
+Historique exportable pour une comptabilite de base (non substitut d'un logiciel comptable).
+3.4 Gestion des dettes et prets
+Enregistrement des creances : "J'ai prete 150 000 GNF a Mamadou — echeance 15/06."
+Enregistrement des dettes : "Je dois 300 000 GNF a mon fournisseur."
+Rappels automatiques avant echeance.
+Historique des remboursements partiels.
+3.5 Assistant financier conversationnel (chatbot)
+Interface de type chat pour poser des questions simples en francais.
+Exemples : "Combien j'ai depense en transport ce mois ?" — "Est-ce que je suis dans mon budget cette semaine ?"
+Reponses en langage naturel adapte au contexte guineeen.
+Fonctionnement hors-ligne pour les requetes sur donnees locales.
+3.6 Planificateur de depenses futures
+Saisie de depenses prevues : "Frais de scolarite en octobre : 500 000 GNF"
+Vue calendrier des depenses futures et alertes de preparation de budget.
+Calcul de la capacite d'epargne necessaire avant l'echeance.
+3.7 Tableau de bord communautaire (anonymise)
+Comparaison anonymisee avec la moyenne des utilisateurs de la meme ville ou categorie professionnelle.
+Indicateurs de reference : "Les menages similaires depensent en moyenne X GNF en nourriture par mois."
+Opt-in explicite de l'utilisateur (RGPD-compatible).
+4. Specifications techniques
+4.1 Plateformes
+Application mobile Android native (priorite absolue — part de marche dominante en Guinee).
+Application mobile iOS (phase 2).
+Dashboard web responsive (pour PC au bureau ou en agence).
+Taille de l'APK ciblee < 20 Mo pour les appareils d'entree de gamme.
+4.2 Architecture et stockage
+Stockage local SQLite chiffre pour le mode hors-ligne.
+Synchronisation cloud optionnelle via API REST securisee (HTTPS/TLS 1.3).
+Sauvegarde chiffree automatique sur serveur local (hebergement en Guinee ou Afrique de l'Ouest recommande pour la latence).
+Architecture backend : API Node.js ou Python (FastAPI) + base de donnees PostgreSQL.
+Architecture mobile : React Native ou Flutter (partage du code Android/iOS).
+4.3 Securite et confidentialite
+Authentification par mot de passe avec hachage bcrypt.
+Option biometrie (empreinte digitale, reconnaissance faciale) pour deverrouillage rapide.
+Chiffrement AES-256 des donnees sensibles (montants, historique, identifiants).
+Verrouillage automatique apres inactivite (duree configurable).
+Politique de confidentialite claire, accessible et en francais.
+Conformite RGPD-compatible (possibilite de telecharger ou supprimer ses donnees).
+Pas de revente ni partage des donnees financieres sans consentement explicite.
+4.4 Mode hors-ligne
+Toutes les fonctionnalites de base disponibles sans connexion Internet.
+Synchronisation automatique a la reconnexion (resolution de conflits de donnees).
+Notification SMS de depassement de budget via SMS Gateway local (Infobip, Africa's Talking) — ne necessite pas d'Internet.
+Mode avion detecte automatiquement.
+4.5 Performance et accessibilite
+Chargement initial < 3 secondes sur connexion 3G.
+Compatibilite Android 7.0+ (API 24+) pour couvrir les appareils ages.
+Interface adaptee aux ecrans de 4,5 a 6,7 pouces.
+Contraste eleve et grandes zones tactiles pour faciliter l'usage.
+Support de la navigation par gestes.
+4.6 Integrations locales
+Import des releves CSV / Excel des wallets MTN Momo et Orange Money.
+API mobile money (si disponible publiquement) pour synchro automatique des transactions.
+SMS Gateway pour les notifications hors Internet (Africa's Talking, Infobip).
+Intégration future : API de paiement mobile pour rechargement automatique du solde de suivi.
+5. Specificites pour le marche guineeen
+5.1 Experience utilisateur localisee
+Interface entiererement en francais avec textes courts et icones evocatrices (lisiblite sur petit ecran).
+Onboarding en 3 etapes maximum avec tutoriel visual integre.
+Support des noms locaux de categories : "Marche", "Maquis", "Grin", "Apprenti", etc.
+Illustrations et avatars culturellement adaptes (pas de personnages generiques occidentaux).
+Mode nuit automatique pour les utilisateurs actifs le soir.
+5.2 Postes de depense locaux cibles
+Recharge telephone et data mobile (MTN, Orange, Cellcom, Skyvision).
+Transport interurbain (taxi, moto-taxi, minibus).
+Envoi d'argent a l'interieur du pays et vers la diaspora (Western Union, Wave, Wari).
+Frais de scolarite, uniformes, fournitures scolaires.
+Achat de telephone et d'electronique.
+Depenses de ceremonies (mariages, baptemes, funerailles).
+Eau, electricite (EDG), groupe electrogene et carburant.
+5.3 Parametres economiques locaux
+Seuils budgetaires preconfigures adaptes au cout de la vie a Conakry.
+Taux de change USD/EUR/GNF mis a jour automatiquement si Internet disponible, sinon saisie manuelle.
+Periode budgetaire flexible : mensuelle, hebdomadaire ou par cycle de paie.
+Prise en compte des revenus irreguliers (journaliers, hebdomadaires, saisonniers).
+6. Accessibilite et inclusion numerique
+6.1 Accessibilite pour tous les niveaux
+Mode simplifie (interface reduite aux 3 actions principales : Ajouter, Voir, Exporter).
+Mode avance pour les utilisateurs plus experimentees.
+Tutoriel video court (< 2 min) embarque dans l'app.
+Support de la saisie vocale (via API Android) pour les utilisateurs ayant des difficultes a taper.
+6.2 Gamification et engagement
+Badges de regularite : "7 jours consecutifs de saisie", "Budget respecte ce mois".
+Objectif hebdomadaire affiche en accueil pour motiver la rigueur.
+Recap mensuel positif : "Bravo ! Vous avez economise 120 000 GNF par rapport au mois dernier."
+7. Modele economique suggere
+7.1 Tiers de service
+Tier
+Fonctionnalites incluses
+Prix suggere
+Gratuit (Free)
+Saisie manuelle, 1 compte, budget de base, tableau de bord simple
+0 GNF
+Essentiel
+Comptes multiples, import CSV, rapports PDF/CSV, alertes SMS, hors-ligne
+10 000 - 15 000 GNF/mois
+Pro
+Tout Essentiel + IA/recommandations, multi-utilisateurs, dettes, chatbot, API wallets
+25 000 - 40 000 GNF/mois
+7.2 Monetisation complementaire
+Partenariats avec institutions de micro-credit pour faciliter les dossiers de pret.
+Commissions sur les envois d'argent facilites via l'application (phase 3).
+Version entreprise pour PME (facturation separee, > 5 utilisateurs).
+8. Contraintes et risques
+8.1 Contraintes techniques
+Connectivite Internet intermittente : toutes les fonctionnalites de base doivent fonctionner offline.
+Faible puissance des appareils d'entree de gamme : l'application doit etre legere (< 20 Mo, RAM < 512 Mo).
+Absence d'API publique mobile money : prevoir import CSV manuel comme principal canal.
+8.2 Risques identifies et mitigation
+Risque
+Probabilite / Impact
+Mitigation
+Adoption faible par manque de litteratie numerique
+Moyen / Eleve
+Onboarding simplifie, tutoriels video
+Coupures Internet et faible debit
+Eleve / Moyen
+Mode hors-ligne complet + SMS
+Resistance a la saisie quotidienne
+Eleve / Eleve
+Gamification, rappels, saisie vocale
+Fuite de donnees financieres sensibles
+Faible / Tres eleve
+Chiffrement AES-256, audit securite
+Concurrence d'apps internationales (YNAB, Wallet)
+Moyen / Moyen
+Localisation profonde, prix adaptes GNF
+9. Roadmap de developpement
+Phase
+Duree estimee
+Livrables
+Phase 0
+1 mois
+Maquettes UX/UI, validation CDC, choix technologiques, mise en place serveur
+Phase 1
+3 mois
+MVP Android : comptes, saisie, categories, budget, tableau de bord, export PDF/CSV, hors-ligne
+Phase 2
+3 mois
+IA/recommandations, objectifs d'epargne, dettes, multi-utilisateurs, iOS
+Phase 3
+2 mois
+Chatbot financier, planificateur, dashboard communautaire, intégration API wallets
+Phase 4
+Continu
+Ameliorations UX, nouvelles intégrations, version web, extension vers d'autres pays CEDEAO
+10. Tableau recapitulatif des fonctionnalites
+Bloc fonctionnel
+Fonctionnalités clés
+Priorité
+Comptes et solde
+Especes, mobile money, bancaire, change de devise GNF/USD/EUR, solde global
+Must-have
+Saisie transactions
+Saisie manuelle, recurrente, import CSV/Excel, saisie vocale (Android)
+Must-have
+Categories
+20+ categories predefiniies locales + personnalisation
+Must-have
+Budget et alertes
+Budget mensuel/hebdomadaire par categorie, jauges colorees, alertes push/SMS
+Must-have
+Tableau de bord
+Camembert, courbe chronologique, solde global, recap mensuel
+Must-have
+Rapports et exports
+PDF signe, CSV, historique 3-6 mois, rapport sur periode libre
+Must-have
+Mode hors-ligne
+Toutes les fonctions de base, synchro a la reconnexion
+Must-have
+Securite
+Chiffrement AES-256, biometrie, verrouillage auto, conformite RGPD
+Must-have
+Analyse IA
+Tendances, score sante financiere, conseils personnalises
+Avancé
+Epargne et objectifs
+Objectifs nommes, compteur visuel, rappels, calcul auto du versement
+Avancé
+Dettes et prets
+Creances, dettes, rappels echeance, remboursements partiels
+Avancé
+Multi-utilisateurs
+Comptes famille/structure, roles, caisse separee, historique exportable
+Avancé
+Chatbot financier
+Questions en langage naturel sur donnees locales, hors-ligne
+Avancé
+Planificateur
+Depenses futures, calendrier, calcul d'epargne necessaire
+Avancé
+Gamification
+Badges, objectifs hebdo, recap positif mensuel
+Avancé
+Dashboard communautaire
+Comparaison anonymisee, indicateurs de reference locaux (opt-in)
+Futur
+Intégrations wallets
+API MTN Momo, Orange Money (import CSV en attendant API officielle)
+Futur
+SMS Gateway
+Notifications hors-Internet via Africa's Talking / Infobip
+Must-have
+App iOS
+Portage de l'application Android vers iOS
+Futur
+Version web
+Dashboard web pour PC (lecture + export seulement en phase 1)
+Futur
+11. Glossaire
+Terme
+Definition
+GNF
+Franc Guineen — monnaie nationale de la Republique de Guinee.
+Mobile money
+Service de paiement et transfert d'argent via telephone mobile (MTN Momo, Orange Money).
+Mode hors-ligne
+Fonctionnement de l'application sans connexion Internet active.
+AES-256
+Standard de chiffrement symetrique a 256 bits considere comme securise.
+CSV
+Format de fichier texte pour les donnees tabulaires (Comma-Separated Values).
+MVP
+Minimum Viable Product — version minimale fonctionnelle livrable rapidement.
+RGPD
+Reglement General sur la Protection des Donnees — cadre europeen de reference pour la confidentialite.
+API
+Interface de programmation applicative permettant a deux logiciels de communiquer.
+SMS Gateway
+Service tiers permettant l'envoi de SMS en masse via API.
+Onboarding
+Processus d'accueil et de prise en main initiale d'une application.
+Note de version
+Ce cahier des charges (v1.0) constitue un document de reference pour les equipes produit, technique et commerciale. Il est amene a evoluer en fonction des retours utilisateurs, des contraintes d'implementation et des opportunites de marche. Toute modification majeure doit faire l'objet d'une mise a jour versionnee.

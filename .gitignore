@@ -1,0 +1,46 @@
+# ============================================
+# .gitignore — Fichiers à ne JAMAIS commiter
+# ============================================
+
+# Secrets — CRITIQUE
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Dépendances
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+.next/
+out/
+dist/
+build/
+.nuxt/
+.output/
+
+# Cache
+.cache/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
