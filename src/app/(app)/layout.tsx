@@ -1,5 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { useAuthStore } from '@/stores/authStore';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { PinLock } from '@/components/auth/PinLock';
 
@@ -8,6 +12,57 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const { isAuthenticated, setUser } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Vérifier la session Supabase au chargement
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user, session.access_token);
+      } else {
+        // Pas de session Supabase → rediriger vers login
+        router.replace('/login');
+        return;
+      }
+      setIsLoading(false);
+    });
+
+    // Écouter les changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          setUser(null);
+          router.replace('/login');
+        } else if (session?.user) {
+          setUser(session.user, session.access_token);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [router, setUser]);
+
+  // Écran de chargement pendant la vérification
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si pas authentifié, ne rien afficher (la redirection est en cours)
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <PinLock>
       <div className="flex flex-col min-h-screen bg-background text-foreground pb-16 md:pb-0 md:pl-64">
