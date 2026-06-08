@@ -13,7 +13,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, setUser } = useAuthStore();
+  const { isAuthenticated, setUser, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -23,12 +23,12 @@ export default function AppLayout({
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user, session.access_token);
+        setIsLoading(false);
       } else {
-        // Pas de session Supabase → rediriger vers login
+        // Pas de session Supabase → nettoyer le store local et rediriger
+        logout();
         router.replace('/login');
-        return;
       }
-      setIsLoading(false);
     });
 
     // Écouter les changements d'état d'authentification
