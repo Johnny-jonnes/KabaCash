@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/stores/authStore';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import Link from 'next/link';
 
 export default function RegisterPage() {
@@ -15,18 +16,61 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { setUser } = useAuthStore();
 
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password.length < 6) {
+      toast.error('Le mot de passe doit contenir au moins 6 caractères');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('Les mots de passe ne correspondent pas');
+      return;
+    }
+
     setIsLoading(true);
-    // Simuler une inscription
-    setTimeout(() => {
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast.error('Cet email est déjà utilisé. Connectez-vous à la place.');
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+
+      if (data.user && data.session) {
+        setUser(data.user, data.session.access_token);
+        toast.success('Compte créé avec succès ! Bienvenue 🎉');
+        router.replace('/dashboard');
+      } else if (data.user && !data.session) {
+        // Confirmation email requise
+        toast.success('Compte créé ! Vérifiez votre email pour confirmer votre inscription.');
+        router.replace('/login');
+      }
+    } catch {
+      toast.error('Erreur lors de la création du compte. Vérifiez votre connexion.');
+    } finally {
       setIsLoading(false);
-      setUser(
-        { id: 'simulated-user-id', phone: '+224600000000', user_metadata: { full_name: 'Nouvel Utilisateur' } } as any,
-        'fake_token'
-      );
-      router.push('/dashboard');
-    }, 1000);
+    }
   };
 
   return (
@@ -44,34 +88,52 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fullname">Nom complet</Label>
-            <Input id="fullname" placeholder="Oumar Diallo" required />
+            <Input 
+              id="fullname" 
+              placeholder="Oumar Diallo" 
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required 
+              autoComplete="name"
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Numéro de téléphone</Label>
-            <Input id="phone" type="tel" placeholder="+224 6XX XX XX XX" required />
+            <Label htmlFor="email">Adresse email</Label>
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="votre@email.com" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required 
+              autoComplete="email"
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="currency">Devise principale</Label>
-            <Select defaultValue="GNF">
-              <SelectTrigger id="currency">
-                <SelectValue placeholder="Sélectionnez une devise" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="GNF">Franc Guinéen (GNF)</SelectItem>
-                <SelectItem value="USD">Dollar US ($)</SelectItem>
-                <SelectItem value="EUR">Euro (€)</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="password">Mot de passe</Label>
+            <Input 
+              id="password" 
+              type="password" 
+              placeholder="6 caractères minimum" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required 
+              minLength={6}
+              autoComplete="new-password"
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="pin">Code PIN (4 chiffres)</Label>
-              <Input id="pin" type="password" inputMode="numeric" maxLength={4} placeholder="••••" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pin-confirm">Confirmer PIN</Label>
-              <Input id="pin-confirm" type="password" inputMode="numeric" maxLength={4} placeholder="••••" required />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+            <Input 
+              id="confirm-password" 
+              type="password" 
+              placeholder="••••••••" 
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required 
+              minLength={6}
+              autoComplete="new-password"
+            />
           </div>
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
             {isLoading ? 'Création en cours...' : 'Créer mon compte'}
