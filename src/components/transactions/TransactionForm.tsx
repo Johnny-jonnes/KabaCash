@@ -33,6 +33,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const { user } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customCategoryName, setCustomCategoryName] = useState('');
   
   const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
   
@@ -49,10 +50,23 @@ export function TransactionForm({
   });
 
   const selectedType = watch('type');
+  const selectedCategory = watch('category_id');
   const categories = DEFAULT_CATEGORIES.filter(c => c.type === selectedType);
+
+  const isAutresSelected = selectedCategory === 'Autres dépenses' || selectedCategory === 'Autres revenus';
 
   const onSubmit = async (data: TransactionFormData) => {
     if (!user) return;
+
+    const finalCategoryId = isAutresSelected && customCategoryName.trim()
+      ? customCategoryName.trim()
+      : data.category_id;
+
+    if (isAutresSelected && !customCategoryName.trim()) {
+      toast.error('Veuillez saisir le nom de la catégorie');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const account = await db.accounts.get(data.account_id);
@@ -64,7 +78,7 @@ export function TransactionForm({
 
       if ((data.type === 'expense' || data.type === 'transfer') && data.amount > account.balance) {
         toast.error('Fonds insuffisants', {
-          description: `Le solde du compte est insuffisant pour cette opération. Solde actuel : ${account.balance} GNF.`
+          description: `Le solde du compte est insuffisant. Solde actuel : ${account.balance} GNF.`
         });
         setIsSubmitting(false);
         return;
@@ -74,7 +88,7 @@ export function TransactionForm({
         id: uuidv4(),
         user_id: user.id,
         account_id: data.account_id,
-        category_id: data.category_id || uuidv4(), // Fallback si pas de cat
+        category_id: finalCategoryId || uuidv4(),
         type: data.type,
         amount: data.amount,
         currency: data.currency,
@@ -91,20 +105,18 @@ export function TransactionForm({
 
       await db.transactions.add(tx);
       
-      // Update account balance
       let newBalance = account.balance;
       if (data.type === 'income') newBalance += data.amount;
       if (data.type === 'expense') newBalance -= data.amount;
-      if (data.type === 'transfer') newBalance -= data.amount; // Deduct from source
+      if (data.type === 'transfer') newBalance -= data.amount;
       
       await db.accounts.update(data.account_id, { balance: newBalance });
       
-      // Add to transfer target
       if (data.type === 'transfer' && data.transfer_to_account_id) {
-          const targetAcc = await db.accounts.get(data.transfer_to_account_id);
-          if (targetAcc) {
-              await db.accounts.update(data.transfer_to_account_id, { balance: targetAcc.balance + data.amount });
-          }
+        const targetAcc = await db.accounts.get(data.transfer_to_account_id);
+        if (targetAcc) {
+          await db.accounts.update(data.transfer_to_account_id, { balance: targetAcc.balance + data.amount });
+        }
       }
 
       import('@/lib/sync/queue').then(({ SyncQueue }) => {
@@ -154,7 +166,7 @@ export function TransactionForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Montant (GNF)</Label>
+        <Label>Montant (GNF) <span className="text-destructive">*</span></Label>
         <Input 
           type="number" 
           placeholder="Ex: 50000" 
@@ -164,7 +176,7 @@ export function TransactionForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Compte source</Label>
+        <Label>Compte source <span className="text-destructive">*</span></Label>
         <Select onValueChange={(val) => setValue('account_id', val)}>
           <SelectTrigger>
             <SelectValue placeholder="Choisir un compte" />
@@ -179,7 +191,7 @@ export function TransactionForm({
 
       {selectedType === 'transfer' && (
         <div className="space-y-2">
-          <Label>Compte de destination</Label>
+          <Label>Compte de destination <span className="text-destructive">*</span></Label>
           <Select onValueChange={(val) => setValue('transfer_to_account_id', val)}>
             <SelectTrigger>
               <SelectValue placeholder="Choisir le compte destinataire" />
@@ -194,24 +206,40 @@ export function TransactionForm({
       )}
 
       {selectedType !== 'transfer' && (
-        <div className="space-y-2">
-          <Label>Catégorie</Label>
-          <Select onValueChange={(val) => setValue('category_id', val)} defaultValue={defaultCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="Catégorie" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map(cat => (
-                <SelectItem key={cat.name} value={cat.name}>
-                  <span className="flex items-center gap-2">
-                    <CategoryIcon name={cat.icon} color={cat.color} size={16} />
-                    {cat.name}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <>
+          <div className="space-y-2">
+            <Label>Catégorie <span className="text-destructive">*</span></Label>
+            <Select onValueChange={(val) => setValue('category_id', val)} defaultValue={defaultCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(cat => (
+                  <SelectItem key={cat.name} value={cat.name}>
+                    <span className="flex items-center gap-2">
+                      <CategoryIcon name={cat.icon} color={cat.color} size={16} />
+                      {cat.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isAutresSelected && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+              <Label>Nom de la catégorie <span className="text-destructive">*</span></Label>
+              <Input 
+                placeholder="Ex: Frais de taxi-moto"
+                value={customCategoryName}
+                onChange={(e) => setCustomCategoryName(e.target.value)}
+                required
+                minLength={2}
+                maxLength={50}
+              />
+            </div>
+          )}
+        </>
       )}
 
       <div className="space-y-2">

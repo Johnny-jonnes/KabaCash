@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function AuthLayout({
@@ -10,19 +10,32 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
+    // Ne pas bloquer la page de confidentialité elle-même
+    if (pathname === '/privacy') {
+      setIsChecking(false);
+      return;
+    }
+
+    // Vérifier si la politique de confidentialité a été acceptée
+    const privacyAccepted = localStorage.getItem('kabacash_privacy_accepted');
+    if (!privacyAccepted) {
+      router.replace('/privacy');
+      return;
+    }
+
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        // Déjà connecté → rediriger vers le dashboard
         router.replace('/dashboard');
       } else {
         setIsChecking(false);
       }
     });
-  }, [router]);
+  }, [router, pathname]);
 
   if (isChecking) {
     return (
@@ -30,6 +43,11 @@ export default function AuthLayout({
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  // La page de confidentialité gère son propre layout (plein écran scrollable)
+  if (pathname === '/privacy') {
+    return <>{children}</>;
   }
 
   return (

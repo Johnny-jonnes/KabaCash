@@ -4,7 +4,8 @@ import {
   ShoppingCart, Home, Car, HeartPulse, GraduationCap, Smartphone, Send, Laptop,
   HardHat, Package, TrendingUp, PartyPopper, Zap, Fuel, Gift, Coffee, ClipboardList,
   Banknote, Store, Wrench, Download, Sparkles, Tag, Utensils, Shirt, Scissors,
-  BookOpen, Briefcase, CreditCard, DollarSign, FileText, Folder, Heart, 
+  BookOpen, Briefcase, CreditCard, DollarSign, FileText, Folder, Heart,
+  CookingPot, Wifi, PiggyBank, HandHeart, PaintBucket, Building, Percent,
   type LucideIcon
 } from 'lucide-react';
 
@@ -43,6 +44,13 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   'file-text': FileText,
   'folder': Folder,
   'heart': Heart,
+  'cooking-pot': CookingPot,
+  'wifi': Wifi,
+  'piggy-bank': PiggyBank,
+  'hand-heart': HandHeart,
+  'paint-bucket': PaintBucket,
+  'building': Building,
+  'percent': Percent,
 };
 
 // Liste des icônes disponibles pour le formulaire de création

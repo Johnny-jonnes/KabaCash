@@ -9,11 +9,12 @@ interface BudgetCardProps {
   spent: number;
   limit: number;
   currency: string;
+  periodLabel?: string;
   onPay?: () => void;
   onDelete?: () => void;
 }
 
-export function BudgetCard({ categoryName, spent, limit, currency, onPay, onDelete }: BudgetCardProps) {
+export function BudgetCard({ categoryName, spent, limit, currency, periodLabel, onPay, onDelete }: BudgetCardProps) {
   const percentage = calculateBudgetPercentage(spent, limit);
   const isCritical = percentage >= 95;
   const isWarning = percentage >= 80 && !isCritical;
@@ -27,6 +28,11 @@ export function BudgetCard({ categoryName, spent, limit, currency, onPay, onDele
             {isCritical && <AlertCircle className="w-4 h-4 text-destructive" />}
           </h3>
           <div className="flex items-center gap-3">
+            {periodLabel && (
+              <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground font-medium">
+                {periodLabel}
+              </span>
+            )}
             <span className="text-sm font-medium">{percentage}%</span>
             {onDelete && (
               <button 
@@ -44,7 +50,7 @@ export function BudgetCard({ categoryName, spent, limit, currency, onPay, onDele
         
         <div className="w-full bg-secondary rounded-full h-2.5 mb-3">
           <div 
-            className={`h-2.5 rounded-full ${isCritical ? 'bg-destructive' : isWarning ? 'bg-orange-500' : 'bg-primary'}`} 
+            className={`h-2.5 rounded-full transition-all ${isCritical ? 'bg-destructive' : isWarning ? 'bg-orange-500' : 'bg-primary'}`} 
             style={{ width: `${Math.min(percentage, 100)}%` }}
           ></div>
         </div>

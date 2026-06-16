@@ -10,21 +10,27 @@ export interface CategoryDef {
 export const DEFAULT_CATEGORIES: CategoryDef[] = [
   // Dépenses
   { name: 'Alimentation / Marché', icon: 'shopping-cart', type: 'expense', color: '#F59E0B' },
+  { name: 'Popote / Cuisine', icon: 'cooking-pot', type: 'expense', color: '#EA580C' },
   { name: 'Loyer / Logement', icon: 'home', type: 'expense', color: '#8B5CF6' },
   { name: 'Transport', icon: 'car', type: 'expense', color: '#3B82F6' },
   { name: 'Santé / Pharmacie', icon: 'heart-pulse', type: 'expense', color: '#EF4444' },
   { name: 'Éducation / Scolarité', icon: 'graduation-cap', type: 'expense', color: '#6366F1' },
   { name: 'Recharge Téléphone', icon: 'smartphone', type: 'expense', color: '#14B8A6' },
+  { name: 'Internet / WiFi', icon: 'wifi', type: 'expense', color: '#0EA5E9' },
   { name: 'Envoi d\'argent', icon: 'send', type: 'expense', color: '#F97316' },
+  { name: 'Habillement / Vêtements', icon: 'shirt', type: 'expense', color: '#EC4899' },
   { name: 'Électronique', icon: 'laptop', type: 'expense', color: '#64748B' },
   { name: 'Salaires / Charges', icon: 'hard-hat', type: 'expense', color: '#DC2626' },
   { name: 'Fournisseurs / Marchandises', icon: 'package', type: 'expense', color: '#A855F7' },
   { name: 'Business / Investissement', icon: 'trending-up', type: 'expense', color: '#059669' },
-  { name: 'Loisirs / Sorties', icon: 'party-popper', type: 'expense', color: '#EC4899' },
+  { name: 'Loisirs / Sorties', icon: 'party-popper', type: 'expense', color: '#E879F9' },
   { name: 'Eau / Électricité (EDG)', icon: 'zap', type: 'expense', color: '#EAB308' },
   { name: 'Carburant / Groupe Élec.', icon: 'fuel', type: 'expense', color: '#78716C' },
   { name: 'Cérémonies', icon: 'gift', type: 'expense', color: '#D946EF' },
   { name: 'Maquis / Grin', icon: 'coffee', type: 'expense', color: '#92400E' },
+  { name: 'Dons / Aumône', icon: 'hand-heart', type: 'expense', color: '#7C3AED' },
+  { name: 'Épargne', icon: 'piggy-bank', type: 'expense', color: '#16A34A' },
+  { name: 'Entretien maison', icon: 'paint-bucket', type: 'expense', color: '#A16207' },
   { name: 'Autres dépenses', icon: 'clipboard-list', type: 'expense', color: '#6B7280' },
 
   // Revenus
@@ -32,5 +38,7 @@ export const DEFAULT_CATEGORIES: CategoryDef[] = [
   { name: 'Ventes / Commerce', icon: 'store', type: 'income', color: '#22C55E' },
   { name: 'Freelance / Services', icon: 'wrench', type: 'income', color: '#34D399' },
   { name: 'Transfert reçu', icon: 'download', type: 'income', color: '#06B6D4' },
+  { name: 'Loyer perçu', icon: 'building', type: 'income', color: '#047857' },
+  { name: 'Intérêts / Dividendes', icon: 'percent', type: 'income', color: '#65A30D' },
   { name: 'Autres revenus', icon: 'sparkles', type: 'income', color: '#84CC16' },
 ];

@@ -13,20 +13,45 @@ import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ConfirmDeleteDialog } from '@/components/ui/ConfirmDeleteDialog';
 import { toast } from 'sonner';
-import { isSameDay, isSameWeek, isSameMonth, isSameYear, parseISO, startOfYear } from 'date-fns';
+import { 
+  isSameDay, isSameWeek, isSameMonth, isSameYear, 
+  parseISO, startOfYear, subHours, subDays, subWeeks, subMonths, subYears, isAfter
+} from 'date-fns';
+import { DBBudget } from '@/types/database';
+
+// Labels lisibles pour les périodes personnalisées
+const UNIT_LABELS_SHORT: Record<string, string> = {
+  hours: 'h',
+  days: 'j',
+  weeks: 'sem',
+  months: 'mois',
+  years: 'ans',
+};
+
+function formatPeriodLabel(budget: DBBudget): string {
+  if (budget.period_type === 'custom' && budget.custom_duration_value && budget.custom_duration_unit) {
+    return `${budget.custom_duration_value} ${UNIT_LABELS_SHORT[budget.custom_duration_unit] || budget.custom_duration_unit}`;
+  }
+  const labels: Record<string, string> = {
+    daily: 'Jour',
+    weekly: 'Semaine',
+    monthly: 'Mois',
+    annual: 'Année',
+  };
+  return labels[budget.period_type] || budget.period_type;
+}
 
 export default function BudgetsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [payBudget, setPayBudget] = useState<{ categoryId: string, limit: number } | null>(null);
-  const [budgetToDelete, setBudgetToDelete] = useState<any | null>(null);
+  const [budgetToDelete, setBudgetToDelete] = useState<DBBudget | null>(null);
 
   const now = new Date();
   const yearStart = startOfYear(now).toISOString();
 
-  // Optimisation: On ne récupère que les budgets
   const budgets = useLiveQuery(() => db.budgets.toArray()) || [];
   
-  // Optimisation Anti-Crash: on ne récupère que les dépenses de cette année pour éviter de tout charger
+  // Optimisation : ne charger que les dépenses de l'année en cours
   const transactions = useLiveQuery(() => 
     db.transactions
       .where('transaction_date')
@@ -36,15 +61,31 @@ export default function BudgetsPage() {
   ) || [];
 
   // Calculer les dépenses par catégorie selon la période du budget
-  const getSpentForCategory = (categoryId: string, periodType: string) => {
+  const getSpentForCategory = (categoryId: string, budget: DBBudget) => {
     return transactions
       .filter(t => {
         if (t.category_id !== categoryId) return false;
         
         const txDate = parseISO(t.transaction_date);
-        switch(periodType) {
+        
+        if (budget.period_type === 'custom' && budget.custom_duration_value && budget.custom_duration_unit) {
+          // Période personnalisée : calculer la date de début
+          const val = budget.custom_duration_value;
+          let startDate: Date;
+          switch (budget.custom_duration_unit) {
+            case 'hours': startDate = subHours(now, val); break;
+            case 'days': startDate = subDays(now, val); break;
+            case 'weeks': startDate = subWeeks(now, val); break;
+            case 'months': startDate = subMonths(now, val); break;
+            case 'years': startDate = subYears(now, val); break;
+            default: startDate = subMonths(now, val); break;
+          }
+          return isAfter(txDate, startDate);
+        }
+        
+        switch (budget.period_type) {
           case 'daily': return isSameDay(txDate, now);
-          case 'weekly': return isSameWeek(txDate, now, { weekStartsOn: 1 }); // Lundi
+          case 'weekly': return isSameWeek(txDate, now, { weekStartsOn: 1 });
           case 'monthly': return isSameMonth(txDate, now);
           case 'annual': return isSameYear(txDate, now);
           default: return isSameMonth(txDate, now);
@@ -67,6 +108,7 @@ export default function BudgetsPage() {
   const weeklyBudgets = budgets.filter(b => b.period_type === 'weekly');
   const monthlyBudgets = budgets.filter(b => b.period_type === 'monthly');
   const annualBudgets = budgets.filter(b => b.period_type === 'annual');
+  const customBudgets = budgets.filter(b => b.period_type === 'custom');
 
   const renderBudgetGrid = (periodBudgets: typeof budgets) => {
     if (periodBudgets.length === 0) {
@@ -80,7 +122,7 @@ export default function BudgetsPage() {
     return (
       <div className="space-y-3 mt-4">
         {periodBudgets.map(budget => {
-          const spent = getSpentForCategory(budget.category_id, budget.period_type);
+          const spent = getSpentForCategory(budget.category_id, budget);
           return (
             <BudgetCard 
               key={budget.id}
@@ -88,6 +130,7 @@ export default function BudgetsPage() {
               spent={spent}
               limit={budget.amount_limit}
               currency={budget.currency}
+              periodLabel={formatPeriodLabel(budget)}
               onPay={() => setPayBudget({ categoryId: budget.category_id, limit: budget.amount_limit })}
               onDelete={() => setBudgetToDelete(budget)}
             />
@@ -111,13 +154,13 @@ export default function BudgetsPage() {
                 Nouveau
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Nouveau budget</DialogTitle>
               </DialogHeader>
               <BudgetForm onSuccess={() => {
                 setIsDialogOpen(false);
-                toast.success('Budget créé !');
+                toast.success('Budget créé');
               }} />
             </DialogContent>
           </Dialog>
@@ -136,20 +179,26 @@ export default function BudgetsPage() {
                 defaultDescription={`Paiement budget ${payBudget.categoryId}`}
                 onSuccess={() => {
                   setPayBudget(null);
-                  toast.success('Paiement enregistré !');
+                  toast.success('Paiement enregistré');
                 }} 
               />
             )}
           </DialogContent>
         </Dialog>
 
-        <Tabs defaultValue="monthly" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="all" className="text-xs">Tous</TabsTrigger>
             <TabsTrigger value="daily" className="text-xs">Jour</TabsTrigger>
             <TabsTrigger value="weekly" className="text-xs">Sem</TabsTrigger>
             <TabsTrigger value="monthly" className="text-xs">Mois</TabsTrigger>
             <TabsTrigger value="annual" className="text-xs">An</TabsTrigger>
+            <TabsTrigger value="custom" className="text-xs">Perso.</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="all">
+            {renderBudgetGrid(budgets)}
+          </TabsContent>
           
           <TabsContent value="daily">
             {renderBudgetGrid(dailyBudgets)}
@@ -166,6 +215,10 @@ export default function BudgetsPage() {
           <TabsContent value="annual">
             {renderBudgetGrid(annualBudgets)}
           </TabsContent>
+
+          <TabsContent value="custom">
+            {renderBudgetGrid(customBudgets)}
+          </TabsContent>
         </Tabs>
 
       </div>
@@ -175,7 +228,7 @@ export default function BudgetsPage() {
         onOpenChange={(open) => !open && setBudgetToDelete(null)}
         onConfirm={handleDeleteBudget}
         title="Supprimer ce budget ?"
-        description={`Êtes-vous sûr de vouloir supprimer le budget "${budgetToDelete?.category_id}" ? Vos transactions ne seront pas supprimées.`}
+        description={`Etes-vous sur de vouloir supprimer le budget "${budgetToDelete?.category_id}" ? Vos transactions ne seront pas supprimées.`}
       />
     </>
   );

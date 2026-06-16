@@ -1,4 +1,4 @@
-import { AccountType, BudgetPeriod, CategoryType, RecurrenceFrequency, SyncStatus, TransactionType, UIMode } from './enums';
+import { AccountType, BudgetPeriod, CategoryType, CustomDurationUnit, RecurrenceFrequency, SyncStatus, TransactionType, UIMode } from './enums';
 
 export interface DBUserProfile {
   id: string;
@@ -71,6 +71,8 @@ export interface DBBudget {
   category_id: string;
   amount_limit: number;
   period_type: BudgetPeriod;
+  custom_duration_value?: number;
+  custom_duration_unit?: CustomDurationUnit;
   currency: string;
   alerts_enabled: boolean;
   alert_threshold_percent: number;
