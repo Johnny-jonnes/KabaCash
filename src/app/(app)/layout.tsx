@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { PinLock } from '@/components/auth/PinLock';
+import { NetworkStatus } from '@/components/pwa/NetworkStatus';
 
 export default function AppLayout({
   children,
@@ -13,19 +14,39 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, setUser, logout } = useAuthStore();
+  const { isAuthenticated, setUser, logout, user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Si on est hors-ligne mais qu'on a une session persistée dans Zustand,
+    // on autorise l'accès direct (offline-first).
+    if (!navigator.onLine && isAuthenticated && user) {
+      setIsLoading(false);
+      return;
+    }
+
     const supabase = createClient();
 
     // Vérifier la session Supabase au chargement
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (session?.user) {
         setUser(session.user, session.access_token);
         setIsLoading(false);
+      } else if (error && isAuthenticated && user) {
+        // Erreur réseau mais session locale disponible → accès offline
+        console.warn('[KabaCash] Session Supabase indisponible, mode hors-ligne actif.');
+        setIsLoading(false);
       } else {
-        // Pas de session Supabase → nettoyer le store local et rediriger
+        // Pas de session Supabase ET pas de session locale → rediriger
+        logout();
+        router.replace('/login');
+      }
+    }).catch(() => {
+      // Timeout/erreur réseau : si session locale dispo, on continue en offline
+      if (isAuthenticated && user) {
+        console.warn('[KabaCash] Impossible de contacter Supabase, mode hors-ligne actif.');
+        setIsLoading(false);
+      } else {
         logout();
         router.replace('/login');
       }
@@ -35,8 +56,11 @@ export default function AppLayout({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
-          setUser(null);
-          router.replace('/login');
+          // Ne pas déconnecter si on est juste hors-ligne
+          if (navigator.onLine) {
+            setUser(null);
+            router.replace('/login');
+          }
         } else if (session?.user) {
           setUser(session.user, session.access_token);
         }
@@ -77,6 +101,9 @@ export default function AppLayout({
         <div className="md:hidden fixed bottom-0 w-full z-50">
           <BottomNav />
         </div>
+
+        {/* Écouteur de réseau + sync automatique */}
+        <NetworkStatus />
       </div>
     </PinLock>
   );

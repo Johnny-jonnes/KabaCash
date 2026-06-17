@@ -60,11 +60,11 @@ export default function PrivacyPolicyPage() {
           <div className="bg-muted p-4 rounded-lg space-y-1">
             <p><strong>Éditeur</strong> : TrillionX</p>
             <p><strong>Adresse</strong> : Conakry, République de Guinée</p>
-            <p><strong>Contact</strong> : contact@trillionx.com</p>
+            <p><strong>Contact</strong> : trillionnx@gmail.com</p>
           </div>
 
           <h3 className="text-base font-semibold text-foreground mt-4">2.2 Délégué à la protection des données</h3>
-          <p>TrillionX a désigné un point de contact unique pour toute question relative à la protection des données. Vous pouvez exercer vos droits par e-mail à : privacy@trillionx.com.</p>
+          <p>TrillionX a désigné un point de contact unique pour toute question relative à la protection des données. Vous pouvez exercer vos droits par e-mail à : trillionnx@gmail.com.</p>
         </section>
 
         {/* ========== CHAPITRE 3 ========== */}
@@ -113,7 +113,7 @@ export default function PrivacyPolicyPage() {
 
         {/* ========== CHAPITRE 6 ========== */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold text-foreground">Chapitre 6 : Cookies et Suivi</h3>
+          <h2 className="text-xl font-bold text-foreground">Chapitre 6 : Cookies et Suivi</h2>
 
           <h3 className="text-base font-semibold text-foreground mt-4">6.1 Absence de tracking publicitaire</h3>
           <p>KabaCash ne contient aucun SDK publicitaire, aucun pixel de suivi, et aucun outil d'analyse tiers. Votre activité au sein de l'application n'est ni suivie, ni profilée.</p>
@@ -130,7 +130,7 @@ export default function PrivacyPolicyPage() {
             <li><strong>Droit à l'effacement</strong> : pour supprimer définitivement votre compte et vos données.</li>
             <li><strong>Droit à la portabilité</strong> : pour exporter vos données financières sous forme de fichier.</li>
           </ul>
-          <p>Pour exercer vos droits, contactez-nous à : <strong>privacy@trillionx.com</strong></p>
+          <p>Pour exercer vos droits, contactez-nous à : <strong>trillionnx@gmail.com</strong></p>
         </section>
 
         {/* ========== CHAPITRE 8 ========== */}
@@ -143,8 +143,8 @@ export default function PrivacyPolicyPage() {
           <h3 className="text-base font-semibold text-foreground mt-4">8.2 Contactez TrillionX</h3>
           <p>Pour toute question ou réclamation concernant la présente politique de confidentialité développée par TrillionX pour KabaCash, vous pouvez nous contacter :</p>
           <div className="bg-muted p-4 rounded-lg space-y-1">
-            <p><strong>Support KabaCash</strong> : contact@trillionx.com</p>
-            <p><strong>Protection des données</strong> : privacy@trillionx.com</p>
+            <p><strong>Support KabaCash</strong> : trillionnx@gmail.com</p>
+            <p><strong>Protection des données</strong> : trillionnx@gmail.com</p>
           </div>
         </section>
 
