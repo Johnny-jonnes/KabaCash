@@ -7,14 +7,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db/dexie';
 import { useAuthStore } from '@/stores/authStore';
 import { transactionSchema, type TransactionFormData } from '@/schemas/transaction.schema';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DEFAULT_CATEGORIES } from '@/constants/categories';
+import { useCategories } from '@/hooks/useCategories';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 interface TransactionFormProps {
   onSuccess?: () => void;
@@ -51,7 +51,9 @@ export function TransactionForm({
 
   const selectedType = watch('type');
   const selectedCategory = watch('category_id');
-  const categories = DEFAULT_CATEGORIES.filter(c => c.type === selectedType);
+
+  // Utiliser le hook qui fusionne defaults + custom
+  const categories = useCategories(selectedType === 'transfer' ? undefined : selectedType as any);
 
   const isAutresSelected = selectedCategory === 'Autres dépenses' || selectedCategory === 'Autres revenus';
 
@@ -78,10 +80,30 @@ export function TransactionForm({
 
       if ((data.type === 'expense' || data.type === 'transfer') && data.amount > account.balance) {
         toast.error('Fonds insuffisants', {
-          description: `Le solde du compte est insuffisant. Solde actuel : ${account.balance} GNF.`
+          description: `Solde actuel : ${account.balance} GNF.`
         });
         setIsSubmitting(false);
         return;
+      }
+
+      // Si catégorie personnalisée, la sauvegarder dans Dexie pour réutilisation
+      if (isAutresSelected && customCategoryName.trim()) {
+        const exists = await db.categories.where('name').equalsIgnoreCase(customCategoryName.trim()).first();
+        if (!exists) {
+          await db.categories.add({
+            id: uuidv4(),
+            user_id: user.id,
+            name: customCategoryName.trim(),
+            icon: 'tag',
+            color: '#6B7280',
+            type: data.type === 'income' ? 'income' : 'expense',
+            is_default: false,
+            sort_order: 999,
+            sync_status: 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
       }
 
       const tx = {

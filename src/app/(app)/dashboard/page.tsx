@@ -150,8 +150,8 @@ export default function DashboardPage() {
   const CustomBarTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-lg text-xs">
-          <p className="font-medium">{formatAmount(payload[0].value, 'GNF')}</p>
+        <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg text-xs">
+          <p className="font-medium text-foreground">{formatAmount(payload[0].value, 'GNF')}</p>
         </div>
       );
     }
@@ -312,11 +312,14 @@ export default function DashboardPage() {
                     <Tooltip 
                       formatter={(value) => formatAmount(Number(value), 'GNF')}
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--popover))', 
+                        backgroundColor: 'hsl(var(--card))', 
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
-                        fontSize: '12px'
+                        fontSize: '12px',
+                        color: 'hsl(var(--foreground))',
                       }}
+                      itemStyle={{ color: 'hsl(var(--foreground))' }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -326,7 +329,7 @@ export default function DashboardPage() {
                 {categoryData.map((cat, i) => (
                   <div key={cat.name} className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                    <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{cat.name}</span>
+                    <span className="text-[10px] text-foreground/70 truncate max-w-[100px]">{cat.name}</span>
                   </div>
                 ))}
               </div>
