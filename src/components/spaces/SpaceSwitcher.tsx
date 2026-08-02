@@ -25,8 +25,9 @@ export function SpaceSwitcher() {
   const label = activeSpace ? activeSpace.name : 'Personnel';
   const Icon = activeSpace ? (activeSpace.type === 'business' ? Briefcase : Users) : User;
 
-  if (mySpaces.length === 0) return null; // pas d'espace : rien à switcher, pas de bruit inutile
-
+  // Toujours visible, même sans espace : c'est l'un des seuls points d'entrée vers
+  // "Créer un espace Famille/Entreprise" — le cacher rendait la fonctionnalité
+  // invisible pour quiconque n'en avait pas encore.
   return (
     <>
       <button

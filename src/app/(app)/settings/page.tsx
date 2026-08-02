@@ -13,13 +13,14 @@ import {
   Bell, 
   Shield, 
   Tags, 
-  Database, 
-  LogOut, 
+  Database,
+  LogOut,
   HelpCircle,
   Moon,
   Sun,
   Globe,
-  ChevronRight
+  ChevronRight,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -71,6 +72,7 @@ export default function SettingsPage() {
     {
       title: 'Application',
       items: [
+        { icon: Users, label: 'Espaces Famille & Entreprise', href: '/spaces' },
         { icon: Tags, label: 'Gérer les catégories', href: '/categories' },
         { icon: theme === 'dark' ? Sun : Moon, label: theme === 'dark' ? 'Mode clair' : 'Mode sombre', action: toggleTheme },
         { icon: Globe, label: 'Langue (Français)', action: () => comingSoon('Gestion de la langue') },
