@@ -18,8 +18,17 @@ export default function RegisterPage() {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // N'accepter que les chiffres, espaces et le + au début (même règle que settings/profile)
+  const handlePhoneChange = (value: string) => {
+    const cleaned = value.replace(/[^0-9+ ]/g, '');
+    const noPlus = cleaned.replace(/\+/g, '');
+    const finalValue = cleaned.startsWith('+') ? '+' + noPlus : noPlus;
+    if (finalValue.length <= 16) setPhone(finalValue);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +44,13 @@ export default function RegisterPage() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       toast.error('Veuillez entrer une adresse email valide');
+      return;
+    }
+
+    // Validation stricte du téléphone
+    const phoneDigits = phone.replace(/[^0-9]/g, '');
+    if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+      toast.error('Le numéro de téléphone doit contenir entre 9 et 15 chiffres');
       return;
     }
 
@@ -59,6 +75,7 @@ export default function RegisterPage() {
         options: {
           data: {
             full_name: trimmedName,
+            phone: phone.trim(),
           },
         },
       });
@@ -123,6 +140,18 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               required 
               autoComplete="email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Numéro de téléphone</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+224 620 00 00 00"
+              value={phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              required
+              autoComplete="tel"
             />
           </div>
           <div className="space-y-2">

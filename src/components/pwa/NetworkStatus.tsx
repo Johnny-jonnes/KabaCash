@@ -1,14 +1,36 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db/dexie';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { toast } from 'sonner';
 import { SyncEngine } from '@/lib/sync/engine';
+import { useSyncStore } from '@/stores/syncStore';
 import { WifiOff, Wifi } from 'lucide-react';
 
 export function NetworkStatus() {
   const isOnline = useOnlineStatus();
   const prevOnline = useRef<boolean | null>(null);
+  const pendingCount = useLiveQuery(() => db.syncQueue.count()) ?? 0;
+  const setPendingCount = useSyncStore((s) => s.setPendingCount);
+
+  // Garde le compteur global à jour pour tout composant qui lit useSyncStore
+  // (ex: settings/sync) sans avoir à ré-écouter Dexie lui-même.
+  useEffect(() => {
+    setPendingCount(pendingCount);
+  }, [pendingCount, setPendingCount]);
+
+  // Flush au démarrage de l'app si des opérations attendaient déjà une connexion
+  // (avant ce correctif, seul un basculement offline→online déclenchait une synchro :
+  // rouvrir l'app en étant déjà en ligne laissait la file bloquée jusqu'au prochain toggle).
+  useEffect(() => {
+    if (navigator.onLine) {
+      SyncEngine.processQueue().catch((err) => {
+        console.error('[KabaCash] Erreur de synchronisation au démarrage:', err);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     // Ne pas afficher de toast au premier rendu

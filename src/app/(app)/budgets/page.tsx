@@ -13,11 +13,16 @@ import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ConfirmDeleteDialog } from '@/components/ui/ConfirmDeleteDialog';
 import { toast } from 'sonner';
-import { 
-  isSameDay, isSameWeek, isSameMonth, isSameYear, 
+import {
+  isSameDay, isSameWeek, isSameMonth, isSameYear,
   parseISO, startOfYear, subHours, subDays, subWeeks, subMonths, subYears, isAfter
 } from 'date-fns';
 import { DBBudget } from '@/types/database';
+import { SyncEngine } from '@/lib/sync/engine';
+import { logActivity } from '@/lib/db/activity-logger';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
+import { useAuthStore } from '@/stores/authStore';
 
 // Labels lisibles pour les périodes personnalisées
 const UNIT_LABELS_SHORT: Record<string, string> = {
@@ -42,6 +47,8 @@ function formatPeriodLabel(budget: DBBudget): string {
 }
 
 export default function BudgetsPage() {
+  const { user } = useAuthStore();
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [payBudget, setPayBudget] = useState<{ categoryId: string, limit: number } | null>(null);
   const [budgetToDelete, setBudgetToDelete] = useState<DBBudget | null>(null);
@@ -49,7 +56,8 @@ export default function BudgetsPage() {
   const now = new Date();
   const yearStart = startOfYear(now).toISOString();
 
-  const budgets = useLiveQuery(() => db.budgets.toArray()) || [];
+  const allBudgets = useLiveQuery(() => db.budgets.toArray()) || [];
+  const budgets = filterBySpace(allBudgets.filter(b => !b.deleted_at), activeSpaceId);
   
   // Optimisation : ne charger que les dépenses de l'année en cours
   const transactions = useLiveQuery(() => 
@@ -95,9 +103,20 @@ export default function BudgetsPage() {
   };
 
   const handleDeleteBudget = async () => {
-    if (!budgetToDelete) return;
+    if (!budgetToDelete || !user) return;
     try {
-      await db.budgets.delete(budgetToDelete.id);
+      const now = new Date().toISOString();
+      const deletedBudget = { ...budgetToDelete, deleted_at: now, updated_at: now, sync_status: 'pending' as const };
+      await db.budgets.put(deletedBudget);
+      await SyncEngine.queueOperation('budgets', budgetToDelete.id, 'delete', deletedBudget);
+      await logActivity({
+        user_id: user.id,
+        entity_type: 'budget',
+        entity_id: budgetToDelete.id,
+        action: 'delete',
+        old_values: { category_id: budgetToDelete.category_id, amount_limit: budgetToDelete.amount_limit },
+        description: `Budget "${budgetToDelete.category_id}" supprimé`,
+      });
       toast.success('Budget supprimé');
     } catch {
       toast.error('Erreur lors de la suppression');
@@ -146,7 +165,7 @@ export default function BudgetsPage() {
       <div className="p-4 space-y-4">
         
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold tracking-tight">Vue d'ensemble</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Vue d&apos;ensemble</h2>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="gap-1">

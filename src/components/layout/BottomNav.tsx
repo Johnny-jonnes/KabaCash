@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ArrowLeftRight, Wallet, PieChart, Settings } from 'lucide-react';
+import { Home, ArrowLeftRight, Wallet, PieChart, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -10,7 +10,8 @@ const navItems = [
   { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
   { name: 'Comptes', href: '/accounts', icon: Wallet },
   { name: 'Budgets', href: '/budgets', icon: PieChart },
-  { name: 'Paramètres', href: '/settings', icon: Settings },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Réglages', href: '/settings', icon: Settings },
 ];
 
 export function BottomNav() {

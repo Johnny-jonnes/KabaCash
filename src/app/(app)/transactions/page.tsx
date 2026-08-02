@@ -9,13 +9,16 @@ import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 
 export default function TransactionsPage() {
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
   // Optimisation Anti-Crash : On limite le chargement aux 100 dernières transactions
-  const allTransactions = useLiveQuery(() => 
+  const allTransactions = useLiveQuery(() =>
     db.transactions
       .orderBy('created_at')
       .reverse()
@@ -23,8 +26,9 @@ export default function TransactionsPage() {
       .toArray()
   ) || [];
 
-  const transactions = allTransactions.filter(t => 
-    filterType === 'all' ? true : t.type === filterType
+  const transactions = filterBySpace(
+    allTransactions.filter(t => !t.deleted_at && (filterType === 'all' ? true : t.type === filterType)),
+    activeSpaceId
   );
 
   return (
@@ -79,12 +83,13 @@ export default function TransactionsPage() {
           {transactions.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-xl border border-border border-dashed">
               <p className="text-sm">Aucune transaction trouvée.</p>
-              <p className="text-xs mt-1">Appuyez sur "Nouveau" pour commencer.</p>
+              <p className="text-xs mt-1">Appuyez sur &quot;Nouveau&quot; pour commencer.</p>
             </div>
           ) : (
             transactions.map((t) => (
-              <TransactionItem 
+              <TransactionItem
                 key={t.id}
+                transaction={t}
                 title={t.description || (t.type === 'transfer' ? 'Transfert' : 'Transaction')}
                 category={t.type === 'transfer' ? 'Transfert interne' : t.category_id}
                 amount={t.amount}

@@ -11,7 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Smartphone, Landmark, Wallet, Briefcase } from 'lucide-react';
+import { Smartphone, Landmark, Wallet, Briefcase, Users } from 'lucide-react';
+import { SyncEngine } from '@/lib/sync/engine';
+import { logActivity } from '@/lib/db/activity-logger';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 interface AccountFormProps {
   onSuccess?: () => void;
@@ -27,6 +31,8 @@ const ACCOUNT_TYPES = [
 export function AccountForm({ onSuccess }: AccountFormProps) {
   const { user } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const activeSpace = useLiveQuery(() => activeSpaceId ? db.spaces.get(activeSpaceId) : undefined, [activeSpaceId]);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema) as any,
@@ -75,9 +81,10 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
         }
       }
 
-      await db.accounts.add({
+      const account = {
         id: uuidv4(),
         user_id: user.id,
+        space_id: activeSpaceId,
         name: finalName,
         type: data.type,
         balance: data.initial_balance,
@@ -89,9 +96,20 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
         account_number: data.account_number,
         description: data.description,
         sort_order: 0,
-        sync_status: 'pending',
+        sync_status: 'pending' as const,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+      };
+
+      await db.accounts.add(account);
+      await SyncEngine.queueOperation('accounts', account.id, 'create', account);
+      await logActivity({
+        user_id: user.id,
+        entity_type: 'account',
+        entity_id: account.id,
+        action: 'create',
+        new_values: { name: account.name, type: account.type, balance: account.balance },
+        description: `Compte "${account.name}" créé`,
       });
 
       if (onSuccess) onSuccess();
@@ -104,7 +122,14 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-      
+
+      {activeSpace && (
+        <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 rounded-lg px-3 py-2">
+          <Users className="w-3.5 h-3.5 shrink-0" />
+          Ce compte sera partagé avec les membres de &quot;{activeSpace.name}&quot;
+        </div>
+      )}
+
       {/* === TYPE DE COMPTE === */}
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type de compte</Label>
@@ -163,7 +188,7 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
           </div>
           {watch('operator') === 'other_mm' && (
             <div className="space-y-2">
-              <Label>Nom de l'opérateur</Label>
+              <Label>Nom de l&apos;opérateur</Label>
               <Input 
                 placeholder="Ex: T-Money, Moov..." 
                 {...register('custom_operator_name')} 

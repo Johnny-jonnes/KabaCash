@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db/dexie';
 import { useAuthStore } from '@/stores/authStore';
 import { transactionSchema, type TransactionFormData } from '@/schemas/transaction.schema';
@@ -15,6 +14,9 @@ import { useCategories } from '@/hooks/useCategories';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { createTransaction, updateTransaction, InsufficientFundsError } from '@/lib/transactions/createTransaction';
+import { resolveOrCreateCategory } from '@/lib/categories/resolveOrCreateCategory';
+import type { DBTransaction } from '@/types/database';
 
 interface TransactionFormProps {
   onSuccess?: () => void;
@@ -22,27 +24,47 @@ interface TransactionFormProps {
   defaultCategory?: string;
   defaultAmount?: number;
   defaultDescription?: string;
+  defaultAccountId?: string;
+  /** Transaction existante à modifier : bascule le formulaire en mode édition. */
+  editingTransaction?: DBTransaction;
 }
 
-export function TransactionForm({ 
-  onSuccess, 
+export function TransactionForm({
+  onSuccess,
   defaultType = 'expense',
   defaultCategory,
   defaultAmount,
-  defaultDescription
+  defaultDescription,
+  defaultAccountId,
+  editingTransaction,
 }: TransactionFormProps) {
   const { user } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState('');
-  
+  const isEditing = !!editingTransaction;
+
   const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
-  
+
+  const editCurrency = editingTransaction?.currency === 'USD' || editingTransaction?.currency === 'EUR'
+    ? editingTransaction.currency
+    : 'GNF';
+
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema) as any,
-    defaultValues: {
+    defaultValues: editingTransaction ? {
+      type: editingTransaction.type,
+      amount: editingTransaction.amount,
+      category_id: editingTransaction.category_id || '',
+      account_id: editingTransaction.account_id,
+      currency: editCurrency,
+      date: editingTransaction.transaction_date,
+      description: editingTransaction.description || '',
+      transfer_to_account_id: editingTransaction.transfer_to_account_id,
+    } : {
       type: defaultType,
       amount: defaultAmount || 0,
       category_id: defaultCategory || '',
+      account_id: defaultAccountId || '',
       currency: 'GNF',
       date: new Date().toISOString().split('T')[0],
       description: defaultDescription || '',
@@ -51,18 +73,16 @@ export function TransactionForm({
 
   const selectedType = watch('type');
   const selectedCategory = watch('category_id');
+  const selectedAccountId = watch('account_id');
+  const selectedTransferAccountId = watch('transfer_to_account_id');
 
   // Utiliser le hook qui fusionne defaults + custom
-  const categories = useCategories(selectedType === 'transfer' ? undefined : selectedType as any);
+  const categories = useCategories(selectedType === 'transfer' ? undefined : (selectedType as 'income' | 'expense'));
 
   const isAutresSelected = selectedCategory === 'Autres dépenses' || selectedCategory === 'Autres revenus';
 
   const onSubmit = async (data: TransactionFormData) => {
     if (!user) return;
-
-    const finalCategoryId = isAutresSelected && customCategoryName.trim()
-      ? customCategoryName.trim()
-      : data.category_id;
 
     if (isAutresSelected && !customCategoryName.trim()) {
       toast.error('Veuillez saisir le nom de la catégorie');
@@ -71,88 +91,43 @@ export function TransactionForm({
 
     setIsSubmitting(true);
     try {
-      const account = await db.accounts.get(data.account_id);
-      if (!account) {
-        toast.error('Compte introuvable');
-        setIsSubmitting(false);
-        return;
-      }
+      const finalCategoryId = isAutresSelected && customCategoryName.trim()
+        ? await resolveOrCreateCategory({ userId: user.id, name: customCategoryName.trim(), type: data.type === 'income' ? 'income' : 'expense' })
+        : data.category_id;
 
-      if ((data.type === 'expense' || data.type === 'transfer') && data.amount > account.balance) {
-        toast.error('Fonds insuffisants', {
-          description: `Solde actuel : ${account.balance} GNF.`
+      if (isEditing && editingTransaction) {
+        await updateTransaction(editingTransaction.id, user.id, {
+          accountId: data.account_id,
+          type: data.type,
+          amount: data.amount,
+          categoryId: data.type === 'transfer' ? undefined : finalCategoryId,
+          description: data.description,
+          date: data.date,
+          transferToAccountId: data.type === 'transfer' ? data.transfer_to_account_id : undefined,
         });
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Si catégorie personnalisée, la sauvegarder dans Dexie pour réutilisation
-      if (isAutresSelected && customCategoryName.trim()) {
-        const exists = await db.categories.where('name').equalsIgnoreCase(customCategoryName.trim()).first();
-        if (!exists) {
-          await db.categories.add({
-            id: uuidv4(),
-            user_id: user.id,
-            name: customCategoryName.trim(),
-            icon: 'tag',
-            color: '#6B7280',
-            type: data.type === 'income' ? 'income' : 'expense',
-            is_default: false,
-            sort_order: 999,
-            sync_status: 'pending',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-        }
-      }
-
-      const tx = {
-        id: uuidv4(),
-        user_id: user.id,
-        account_id: data.account_id,
-        category_id: finalCategoryId || uuidv4(),
-        type: data.type,
-        amount: data.amount,
-        currency: data.currency,
-        description: data.description || '',
-        transaction_date: data.date,
-        sync_status: 'pending' as const,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      
-      if (data.type === 'transfer' && data.transfer_to_account_id) {
-        Object.assign(tx, { transfer_to_account_id: data.transfer_to_account_id });
-      }
-
-      await db.transactions.add(tx);
-      
-      let newBalance = account.balance;
-      if (data.type === 'income') newBalance += data.amount;
-      if (data.type === 'expense') newBalance -= data.amount;
-      if (data.type === 'transfer') newBalance -= data.amount;
-      
-      await db.accounts.update(data.account_id, { balance: newBalance });
-      
-      if (data.type === 'transfer' && data.transfer_to_account_id) {
-        const targetAcc = await db.accounts.get(data.transfer_to_account_id);
-        if (targetAcc) {
-          await db.accounts.update(data.transfer_to_account_id, { balance: targetAcc.balance + data.amount });
-        }
-      }
-
-      import('@/lib/sync/queue').then(({ SyncQueue }) => {
-        SyncQueue.add({
-          entity_type: 'transactions',
-          entity_id: tx.id,
-          operation: 'create',
-          payload: tx
+        toast.success('Transaction modifiée');
+      } else {
+        await createTransaction({
+          userId: user.id,
+          accountId: data.account_id,
+          type: data.type,
+          amount: data.amount,
+          currency: data.currency,
+          categoryId: data.type === 'transfer' ? undefined : finalCategoryId,
+          description: data.description,
+          date: data.date,
+          transferToAccountId: data.type === 'transfer' ? data.transfer_to_account_id : undefined,
         });
-      });
+      }
 
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error('Erreur transaction', error);
+      if (error instanceof InsufficientFundsError) {
+        toast.error('Fonds insuffisants', { description: `Solde actuel : ${error.accountBalance} GNF.` });
+      } else {
+        console.error('Erreur transaction', error);
+        toast.error('Une erreur est survenue');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -199,7 +174,7 @@ export function TransactionForm({
 
       <div className="space-y-2">
         <Label>Compte source <span className="text-destructive">*</span></Label>
-        <Select onValueChange={(val) => setValue('account_id', val)}>
+        <Select value={selectedAccountId} onValueChange={(val) => setValue('account_id', val, { shouldValidate: true })}>
           <SelectTrigger>
             <SelectValue placeholder="Choisir un compte" />
           </SelectTrigger>
@@ -209,21 +184,23 @@ export function TransactionForm({
             ))}
           </SelectContent>
         </Select>
+        {errors.account_id && <p className="text-sm text-destructive">{errors.account_id.message}</p>}
       </div>
 
       {selectedType === 'transfer' && (
         <div className="space-y-2">
           <Label>Compte de destination <span className="text-destructive">*</span></Label>
-          <Select onValueChange={(val) => setValue('transfer_to_account_id', val)}>
+          <Select value={selectedTransferAccountId} onValueChange={(val) => setValue('transfer_to_account_id', val, { shouldValidate: true })}>
             <SelectTrigger>
               <SelectValue placeholder="Choisir le compte destinataire" />
             </SelectTrigger>
             <SelectContent>
-              {accounts.map(acc => (
+              {accounts.filter(acc => acc.id !== selectedAccountId).map(acc => (
                 <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {errors.transfer_to_account_id && <p className="text-sm text-destructive">{errors.transfer_to_account_id.message}</p>}
         </div>
       )}
 
@@ -231,7 +208,7 @@ export function TransactionForm({
         <>
           <div className="space-y-2">
             <Label>Catégorie <span className="text-destructive">*</span></Label>
-            <Select onValueChange={(val) => setValue('category_id', val)} defaultValue={defaultCategory}>
+            <Select value={selectedCategory} onValueChange={(val) => setValue('category_id', val, { shouldValidate: true })}>
               <SelectTrigger>
                 <SelectValue placeholder="Catégorie" />
               </SelectTrigger>
@@ -273,7 +250,7 @@ export function TransactionForm({
       </div>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? 'Enregistrement...' : 'Valider'}
+        {isSubmitting ? 'Enregistrement...' : isEditing ? 'Enregistrer les modifications' : 'Valider'}
       </Button>
     </form>
   );

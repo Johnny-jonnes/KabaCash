@@ -1,9 +1,12 @@
 'use client';
 
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db/dexie';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { WifiOff, Bell, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { SpaceSwitcher } from '@/components/spaces/SpaceSwitcher';
 
 interface HeaderProps {
   title: string;
@@ -13,13 +16,16 @@ interface HeaderProps {
 export function Header({ title, showBack }: HeaderProps) {
   const isOnline = useOnlineStatus();
   const router = useRouter();
+  const unreadCount = useLiveQuery(() =>
+    db.notifications.filter(n => !n.read_at && !n.deleted_at).count()
+  ) ?? 0;
 
   return (
     <header className="sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-background border-b border-border">
       <div className="flex items-center gap-2">
         {showBack && (
-          <button 
-            onClick={() => router.back()} 
+          <button
+            onClick={() => router.back()}
             className="p-1.5 -ml-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -33,11 +39,17 @@ export function Header({ title, showBack }: HeaderProps) {
           </span>
         )}
       </div>
-      <Link href="/alerts" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
-        <Bell className="w-5 h-5" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-      </Link>
+      <div className="flex items-center gap-1">
+        <SpaceSwitcher />
+        <Link href="/alerts" className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center bg-expense text-[9px] font-bold text-white rounded-full animate-in zoom-in-50 duration-150">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Link>
+      </div>
     </header>
   );
 }
-

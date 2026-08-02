@@ -1,14 +1,13 @@
 import { db } from './dexie';
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
 import { generateUUID } from '../utils/id';
-import { UIMode } from '@/types/enums';
 
 export async function seedDatabase(userId: string) {
   // Check if categories already exist
   const existingCount = await db.categories.where('user_id').equals(userId).count();
   
   if (existingCount === 0) {
-    const categoriesToInsert = DEFAULT_CATEGORIES.map(cat => ({
+    const categoriesToInsert = DEFAULT_CATEGORIES.map((cat, index) => ({
       id: generateUUID(),
       user_id: userId,
       name: cat.name,
@@ -16,7 +15,8 @@ export async function seedDatabase(userId: string) {
       type: cat.type,
       color: cat.color,
       is_default: true,
-      sort_order: 0,
+      is_active: true,
+      sort_order: index,
       sync_status: 'pending' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

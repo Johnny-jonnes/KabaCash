@@ -12,6 +12,10 @@ import { useCategories } from '@/hooks/useCategories';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { BudgetPeriod, CustomDurationUnit } from '@/types/enums';
 import { toast } from 'sonner';
+import { SyncEngine } from '@/lib/sync/engine';
+import { logActivity } from '@/lib/db/activity-logger';
+import { resolveOrCreateCategory } from '@/lib/categories/resolveOrCreateCategory';
+import { useSpaceStore } from '@/stores/spaceStore';
 
 interface BudgetFormProps {
   onSuccess?: () => void;
@@ -35,6 +39,7 @@ const UNIT_LABELS: Record<CustomDurationUnit, string> = {
 
 export function BudgetForm({ onSuccess }: BudgetFormProps) {
   const { user } = useAuthStore();
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [categoryId, setCategoryId] = useState('');
   const [customCategoryName, setCustomCategoryName] = useState('');
   const [amountLimit, setAmountLimit] = useState('');
@@ -77,10 +82,15 @@ export function BudgetForm({ onSuccess }: BudgetFormProps) {
     setIsSubmitting(true);
 
     try {
-      await db.budgets.add({
+      const resolvedCategoryId = isAutresSelected && customCategoryName.trim()
+        ? await resolveOrCreateCategory({ userId: user.id, name: customCategoryName.trim(), type: 'expense' })
+        : finalCategoryId;
+
+      const budget = {
         id: uuidv4(),
         user_id: user.id,
-        category_id: finalCategoryId,
+        space_id: activeSpaceId,
+        category_id: resolvedCategoryId,
         amount_limit: parseInt(amountLimit),
         period_type: period,
         ...(isCustomPeriod && {
@@ -90,10 +100,22 @@ export function BudgetForm({ onSuccess }: BudgetFormProps) {
         currency: 'GNF',
         alerts_enabled: true,
         alert_threshold_percent: 80,
-        sync_status: 'pending',
+        sync_status: 'pending' as const,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+      };
+
+      await db.budgets.add(budget);
+      await SyncEngine.queueOperation('budgets', budget.id, 'create', budget);
+      await logActivity({
+        user_id: user.id,
+        entity_type: 'budget',
+        entity_id: budget.id,
+        action: 'create',
+        new_values: { category_id: budget.category_id, amount_limit: budget.amount_limit, period_type: budget.period_type },
+        description: `Budget "${budget.category_id}" créé (${budget.amount_limit} GNF / ${PERIOD_LABELS[budget.period_type]})`,
       });
+
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Erreur création budget', error);

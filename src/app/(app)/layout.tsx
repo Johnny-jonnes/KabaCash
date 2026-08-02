@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { PinLock } from '@/components/auth/PinLock';
 import { NetworkStatus } from '@/components/pwa/NetworkStatus';
+import { QuickAddFab } from '@/components/quick-add/QuickAddFab';
+import { NotificationGenerator } from '@/components/notifications/NotificationGenerator';
+import { SpaceSync } from '@/components/spaces/SpaceSync';
 
 export default function AppLayout({
   children,
@@ -17,7 +20,27 @@ export default function AppLayout({
   const { isAuthenticated, setUser, logout, user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
+  // authStore est persisté (localStorage) mais Next.js fait un premier rendu client
+  // identique au rendu serveur (sans localStorage) pour éviter un hydration mismatch —
+  // isAuthenticated/user valent donc encore false/null à ce moment-là, et la
+  // réhydratation Zustand ne se termine qu'un instant après. Sans ce garde-fou, l'effet
+  // ci-dessous capturait ces valeurs par défaut avant que Zustand n'ait fini de lire le
+  // localStorage, ce qui déconnectait à tort un utilisateur pourtant déjà connecté
+  // (notamment le contournement hors-ligne, qui ne se déclenchait alors jamais).
+  // useAuthStore.persist est indéfini pendant le prerendering statique côté serveur
+  // (pas de localStorage) : on traite ce cas comme "pas encore hydraté", comme sur le client.
+  const hasHydrated = useSyncExternalStore(
+    (callback) => {
+      const unsubscribe = useAuthStore.persist?.onFinishHydration?.(callback);
+      return typeof unsubscribe === 'function' ? unsubscribe : () => {};
+    },
+    () => useAuthStore.persist?.hasHydrated?.() ?? false,
+    () => false
+  );
+
   useEffect(() => {
+    if (!hasHydrated) return;
+
     // Si on est hors-ligne mais qu'on a une session persistée dans Zustand,
     // on autorise l'accès direct (offline-first).
     if (!navigator.onLine && isAuthenticated && user) {
@@ -68,7 +91,7 @@ export default function AppLayout({
     );
 
     return () => subscription.unsubscribe();
-  }, [router, setUser]);
+  }, [hasHydrated, router, setUser]);
 
   // Écran de chargement pendant la vérification
   if (isLoading) {
@@ -102,8 +125,12 @@ export default function AppLayout({
           <BottomNav />
         </div>
 
+        <QuickAddFab />
+
         {/* Écouteur de réseau + sync automatique */}
         <NetworkStatus />
+        <NotificationGenerator />
+        <SpaceSync />
       </div>
     </PinLock>
   );

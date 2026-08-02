@@ -12,13 +12,22 @@ import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ConfirmDeleteDialog } from '@/components/ui/ConfirmDeleteDialog';
 import { toast } from 'sonner';
+import { SyncEngine } from '@/lib/sync/engine';
+import { logActivity } from '@/lib/db/activity-logger';
+import { useAuthStore } from '@/stores/authStore';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
+import type { DBAccount } from '@/types/database';
 
 export default function AccountsPage() {
+  const { user } = useAuthStore();
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [accountToDelete, setAccountToDelete] = useState<any | null>(null);
-  
-  const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
-  
+  const [accountToDelete, setAccountToDelete] = useState<DBAccount | null>(null);
+
+  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const accounts = filterBySpace(allAccounts.filter(a => !a.deleted_at), activeSpaceId);
+
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
   const cashAccounts = accounts.filter(a => a.type === 'cash');
@@ -27,11 +36,24 @@ export default function AccountsPage() {
   const bizAccounts = accounts.filter(a => a.type === 'business');
 
   const handleDeleteAccount = async () => {
-    if (!accountToDelete) return;
+    if (!accountToDelete || !user) return;
     try {
-      await db.accounts.delete(accountToDelete.id);
+      // Suppression douce : l'historique des transactions liées à ce compte
+      // reste intact et consultable (deleted_at, jamais de delete physique).
+      const now = new Date().toISOString();
+      const deletedAccount = { ...accountToDelete, deleted_at: now, updated_at: now, sync_status: 'pending' as const };
+      await db.accounts.put(deletedAccount);
+      await SyncEngine.queueOperation('accounts', accountToDelete.id, 'delete', deletedAccount);
+      await logActivity({
+        user_id: user.id,
+        entity_type: 'account',
+        entity_id: accountToDelete.id,
+        action: 'delete',
+        old_values: { name: accountToDelete.name, balance: accountToDelete.balance },
+        description: `Compte "${accountToDelete.name}" supprimé`,
+      });
       toast.success('Compte supprimé avec succès');
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors de la suppression du compte');
     }
   };
@@ -97,7 +119,7 @@ export default function AccountsPage() {
 
         {accounts.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-xl border border-border border-dashed">
-            <p className="text-sm">Vous n'avez pas encore de compte.</p>
+            <p className="text-sm">Vous n&apos;avez pas encore de compte.</p>
             <p className="text-xs mt-1">Cliquez sur Nouveau pour commencer.</p>
           </div>
         ) : (
@@ -139,7 +161,7 @@ export default function AccountsPage() {
         onOpenChange={(open) => !open && setAccountToDelete(null)}
         onConfirm={handleDeleteAccount}
         title="Supprimer ce compte ?"
-        description={`Êtes-vous sûr de vouloir supprimer le compte "${accountToDelete?.name}" ? Cette action supprimera également toutes les transactions liées à ce compte.`}
+        description={`Êtes-vous sûr de vouloir supprimer le compte "${accountToDelete?.name}" ? L'historique de ses transactions passées restera consultable.`}
       />
     </>
   );

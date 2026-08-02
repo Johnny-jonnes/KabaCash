@@ -1,11 +1,12 @@
 'use client';
 
-import { 
+import {
   ShoppingCart, Home, Car, HeartPulse, GraduationCap, Smartphone, Send, Laptop,
   HardHat, Package, TrendingUp, PartyPopper, Zap, Fuel, Gift, Coffee, ClipboardList,
   Banknote, Store, Wrench, Download, Sparkles, Tag, Utensils, Shirt, Scissors,
   BookOpen, Briefcase, CreditCard, DollarSign, FileText, Folder, Heart,
   CookingPot, Wifi, PiggyBank, HandHeart, PaintBucket, Building, Percent,
+  Bike, Plane, Target,
   type LucideIcon
 } from 'lucide-react';
 
@@ -51,6 +52,9 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   'paint-bucket': PaintBucket,
   'building': Building,
   'percent': Percent,
+  'bike': Bike,
+  'plane': Plane,
+  'target': Target,
 };
 
 // Liste des icônes disponibles pour le formulaire de création
