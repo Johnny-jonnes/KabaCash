@@ -50,7 +50,7 @@ export default function SyncPage() {
             <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
               {pendingCount > 0 ? <CloudOff className="w-8 h-8" /> : <Cloud className="w-8 h-8" />}
             </div>
-            <h2 className="text-xl font-bold mb-2">Supabase Cloud</h2>
+            <h2 className="text-xl font-bold mb-2">Cloud</h2>
             <p className="text-sm text-muted-foreground mb-6">
               Sauvegarde automatique de vos données sécurisée dans le cloud.
             </p>
