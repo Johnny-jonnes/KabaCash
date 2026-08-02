@@ -3,13 +3,17 @@
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useSpaceStore } from '@/stores/spaceStore';
-import { pullAllMyData, subscribeToSpace } from '@/lib/sync/pull';
+import { pullAllMyData, subscribeToSpace, subscribeToUserData } from '@/lib/sync/pull';
 
 /**
  * Récupère les données (personnelles + espaces) une fois par session au
- * démarrage, puis maintient un abonnement Realtime sur l'espace actif pour que
- * les changements des autres membres apparaissent sans recharger la page.
- * Aucun rendu — composant purement fonctionnel, monté dans (app)/layout.tsx.
+ * démarrage, puis maintient deux abonnements Realtime : un sur les données
+ * personnelles du compte (synchro multi-appareils du même utilisateur — sans
+ * ça, un second appareil déjà ouvert ne voyait jamais les changements faits sur
+ * le premier) et un sur l'espace actif (changements des autres membres). Un
+ * retour de connexion déclenche aussi un re-pull, au cas où le canal Realtime
+ * ait été coupé pendant la période hors-ligne. Aucun rendu — composant
+ * purement fonctionnel, monté dans (app)/layout.tsx.
  */
 export function SpaceSync() {
   const userId = useAuthStore((s) => s.user?.id);
@@ -22,6 +26,23 @@ export function SpaceSync() {
     pullAllMyData(userId).catch((err) => {
       console.error('[FinaX] Erreur de récupération des données distantes:', err);
     });
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || typeof navigator === 'undefined') return;
+    const unsubscribe = subscribeToUserData(userId, () => {});
+
+    const handleOnline = () => {
+      pullAllMyData(userId).catch((err) => {
+        console.error('[FinaX] Erreur de récupération des données distantes:', err);
+      });
+    };
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('online', handleOnline);
+    };
   }, [userId]);
 
   useEffect(() => {

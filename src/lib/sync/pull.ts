@@ -87,3 +87,42 @@ export function subscribeToSpace(spaceId: string, onChange: () => void): () => v
 
   return () => { supabase.removeChannel(channel); };
 }
+
+/**
+ * Abonnement Realtime sur les données personnelles du compte connecté — c'est ce
+ * qui manquait pour la synchro multi-appareils hors espace partagé : avant ceci,
+ * seul `pullAllMyData` au démarrage existait, donc un second appareil déjà ouvert
+ * ne voyait jamais les changements faits sur le premier. `pullAllMyData` (et non
+ * juste `pullPersonalData`) est réutilisé ici pour rester cohérent même si
+ * l'utilisateur a aussi des espaces, avec un léger anti-rebond car une seule
+ * action (ex: créer une transaction) modifie souvent 2 tables à la fois
+ * (transactions + solde du compte), ce qui déclencherait sinon 2 pulls quasi
+ * simultanés.
+ */
+export function subscribeToUserData(userId: string, onChange: () => void): () => void {
+  const supabase = createClient();
+  const tables = ['accounts', 'transactions', 'budgets', 'savings_goals'];
+
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const scheduleRepull = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      pullAllMyData(userId).then(onChange);
+    }, 500);
+  };
+
+  const channel = supabase.channel(`user-${userId}`);
+  for (const table of tables) {
+    channel.on(
+      REALTIME_LISTEN_TYPES.POSTGRES_CHANGES,
+      { event: '*', schema: 'public', table, filter: `user_id=eq.${userId}` },
+      scheduleRepull
+    );
+  }
+  channel.subscribe();
+
+  return () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    supabase.removeChannel(channel);
+  };
+}
