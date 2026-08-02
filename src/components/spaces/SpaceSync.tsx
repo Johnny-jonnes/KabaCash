@@ -20,7 +20,7 @@ export function SpaceSync() {
     if (!userId || hasPulled.current || typeof navigator === 'undefined' || !navigator.onLine) return;
     hasPulled.current = true;
     pullAllMyData(userId).catch((err) => {
-      console.error('[KabaCash] Erreur de récupération des données distantes:', err);
+      console.error('[FinaX] Erreur de récupération des données distantes:', err);
     });
   }, [userId]);
 

@@ -20,7 +20,7 @@
     --color-chart-3: var(--chart-3);
     --color-chart-2: var(--chart-2);
     --color-chart-1: var(--chart-1);
-    /* Marque KabaCash */
+    /* Marque FinaX */
     --color-brand-50: var(--brand-50);
     --color-brand-100: var(--brand-100);
     --color-brand-200: var(--brand-200);
@@ -78,23 +78,24 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    /* Neutres de marque : "Brume" et "Encre" (teintés jade), jamais du gris pur */
+    --background: #F5F6F3;
+    --foreground: #10141B;
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: #10141B;
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
+    --popover-foreground: #10141B;
     --primary: var(--brand-600);
     --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --secondary: #EEF1EC;
+    --secondary-foreground: #10141B;
+    --muted: #EEF1EC;
+    --muted-foreground: #5B6472;
+    --accent: #EEF1EC;
+    --accent-foreground: #10141B;
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
+    --border: #E1E4DD;
+    --input: #E1E4DD;
     --ring: var(--brand-500);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
@@ -111,27 +112,27 @@
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: var(--brand-500);
 
-    /* Marque KabaCash — échelle verte (cohérente avec themeColor du manifest PWA) */
-    --brand-50: #ecfdf5;
-    --brand-100: #d1fae5;
-    --brand-200: #a7f3d0;
-    --brand-400: #34d399;
-    --brand-500: #10b981;
-    --brand-600: #059669;
-    --brand-700: #047857;
-    --brand-800: #065f46;
-    --brand-900: #064e3b;
+    /* Marque FinaX — rampe "Jade" (cohérente avec themeColor du manifest PWA) */
+    --brand-50: #EAF6F1;
+    --brand-100: #CFEBE1;
+    --brand-200: #9FD6C3;
+    --brand-400: #2FBE9B;
+    --brand-500: #229478;
+    --brand-600: #1B8F72;
+    --brand-700: #17715B;
+    --brand-800: #135A48;
+    --brand-900: #0F4739;
 
-    /* Sémantique financière : revenu / dépense / transfert, utilisée partout (dashboard, transactions, budgets) */
-    --income: #059669;
-    --income-foreground: #047857;
-    --expense: #e11d48;
-    --expense-foreground: #be123c;
+    /* Sémantique financière : revenu (Jade) / dépense (Terracotta) / transfert, utilisée partout (dashboard, transactions, budgets) */
+    --income: #1B8F72;
+    --income-foreground: #146152;
+    --expense: #BE5B47;
+    --expense-foreground: #9A4636;
     --transfer: #2563eb;
     --transfer-foreground: #1d4ed8;
 
     /* Statuts (alertes budget, score financier) — contraste validé clair/sombre */
-    --status-good: #059669;
+    --status-good: #1B8F72;
     --status-warning: #fab219;
     --status-serious: #ec835a;
     --status-critical: #d03b3b;
@@ -148,23 +149,24 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
+    /* Neutres de marque : "Encre" comme fond, jamais un noir pur */
+    --background: #10141B;
+    --foreground: #F2F3F0;
+    --card: #161B23;
+    --card-foreground: #F2F3F0;
+    --popover: #161B23;
+    --popover-foreground: #F2F3F0;
     --primary: var(--brand-400);
-    --primary-foreground: oklch(0.145 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --primary-foreground: #10141B;
+    --secondary: #1D232D;
+    --secondary-foreground: #F2F3F0;
+    --muted: #1D232D;
+    --muted-foreground: #9AA3AF;
+    --accent: #1D232D;
+    --accent-foreground: #F2F3F0;
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
+    --border: #262D38;
+    --input: #262D38;
     --ring: var(--brand-400);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
@@ -180,24 +182,24 @@
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: var(--brand-400);
 
-    --brand-50: #ecfdf5;
-    --brand-100: #d1fae5;
-    --brand-200: #a7f3d0;
-    --brand-400: #34d399;
-    --brand-500: #10b981;
-    --brand-600: #059669;
-    --brand-700: #047857;
-    --brand-800: #065f46;
-    --brand-900: #064e3b;
+    --brand-50: #EAF6F1;
+    --brand-100: #CFEBE1;
+    --brand-200: #9FD6C3;
+    --brand-400: #2FBE9B;
+    --brand-500: #229478;
+    --brand-600: #1B8F72;
+    --brand-700: #17715B;
+    --brand-800: #135A48;
+    --brand-900: #0F4739;
 
-    --income: #34d399;
-    --income-foreground: #6ee7b7;
-    --expense: #fb7185;
-    --expense-foreground: #fda4af;
+    --income: #2FBE9B;
+    --income-foreground: #7FDDC2;
+    --expense: #E08A73;
+    --expense-foreground: #F0B29F;
     --transfer: #60a5fa;
     --transfer-foreground: #93c5fd;
 
-    --status-good: #34d399;
+    --status-good: #2FBE9B;
     --status-warning: #fab219;
     --status-serious: #ec835a;
     --status-critical: #e66767;

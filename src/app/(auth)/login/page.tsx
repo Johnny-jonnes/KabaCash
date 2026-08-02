@@ -83,7 +83,7 @@ export default function LoginPage() {
           </div>
         </div>
         <CardTitle className="text-2xl font-bold tracking-tight">Bon retour !</CardTitle>
-        <CardDescription>Connectez-vous à votre compte KabaCash</CardDescription>
+        <CardDescription>Connectez-vous à votre compte FinaX</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

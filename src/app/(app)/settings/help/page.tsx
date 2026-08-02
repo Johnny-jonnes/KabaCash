@@ -1,7 +1,7 @@
 'use client';
 
 import { Header } from '@/components/layout/Header';
-import { Mail, Phone, Globe } from 'lucide-react';
+import { Mail, Phone } from 'lucide-react';
 
 export default function HelpPage() {
   return (
@@ -14,23 +14,17 @@ export default function HelpPage() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contactez-nous</h3>
             <div className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-4">
-              <a href="mailto:support@kabacash.com" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
+              <a href="mailto:trillionnx@gmail.com" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
                 <div className="p-2 bg-primary/10 text-primary rounded-lg">
                   <Mail className="w-4 h-4" />
                 </div>
-                support@kabacash.com
+                trillionnx@gmail.com
               </a>
               <a href="tel:+224600000000" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
                 <div className="p-2 bg-primary/10 text-primary rounded-lg">
                   <Phone className="w-4 h-4" />
                 </div>
                 +224 600 00 00 00
-              </a>
-              <a href="https://kabacash.com" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm hover:text-primary transition-colors">
-                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                  <Globe className="w-4 h-4" />
-                </div>
-                www.kabacash.com
               </a>
             </div>
           </div>

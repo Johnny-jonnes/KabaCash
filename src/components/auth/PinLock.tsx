@@ -57,7 +57,7 @@ export function PinLock({ children }: { children: React.ReactNode }) {
         
         <h1 className="text-2xl font-bold mb-2">Code PIN requis</h1>
         <p className="text-muted-foreground text-sm mb-8 text-center">
-          Veuillez entrer votre code de sécurité pour accéder à KabaCash.
+          Veuillez entrer votre code de sécurité pour accéder à FinaX.
         </p>
 
         {/* Dots */}

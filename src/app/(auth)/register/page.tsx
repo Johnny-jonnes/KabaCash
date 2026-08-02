@@ -113,7 +113,7 @@ export default function RegisterPage() {
           </div>
         </div>
         <CardTitle className="text-2xl font-bold tracking-tight">Créer un compte</CardTitle>
-        <CardDescription>Rejoignez KabaCash en quelques secondes</CardDescription>
+        <CardDescription>Rejoignez FinaX en quelques secondes</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -27,7 +27,7 @@ export function NetworkStatus() {
   useEffect(() => {
     if (navigator.onLine) {
       SyncEngine.processQueue().catch((err) => {
-        console.error('[KabaCash] Erreur de synchronisation au démarrage:', err);
+        console.error('[FinaX] Erreur de synchronisation au démarrage:', err);
       });
     }
   }, []);
@@ -51,7 +51,7 @@ export function NetworkStatus() {
 
         // Lancer la synchronisation automatique
         SyncEngine.processQueue().catch((err) => {
-          console.error('[KabaCash] Erreur de synchronisation automatique:', err);
+          console.error('[FinaX] Erreur de synchronisation automatique:', err);
         });
       } else {
         // Passage hors-ligne → avertir l'utilisateur

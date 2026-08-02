@@ -11,7 +11,7 @@ export function PWAListener() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         // Le SW a pris le contrôle, ce qui signifie qu'une mise à jour a été appliquée.
-        toast.info('Une mise à jour de KabaCash a été installée.', {
+        toast.info('Une mise à jour de FinaX a été installée.', {
           description: 'L\'application va se recharger pour appliquer les nouveautés.',
           duration: 4000,
           onAutoClose: () => window.location.reload(),
@@ -30,7 +30,7 @@ export function PWAListener() {
       // Stocke l'événement pour pouvoir le déclencher plus tard
       setDeferredPrompt(e);
       // Optionnel: On peut afficher un Toast proposant l'installation
-      toast('Installer KabaCash', {
+      toast('Installer FinaX', {
         description: 'Installez l\'application sur votre appareil pour un accès hors-ligne rapide.',
         action: {
           label: 'Installer',

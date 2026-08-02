@@ -1,12 +1,12 @@
 {
-  "name": "KabaCash - Gestion Financiere",
-  "short_name": "KabaCash",
+  "name": "FinaX - Gestion Financiere",
+  "short_name": "FinaX",
   "description": "Gérez vos finances personnelles et votre micro-entreprise",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0A0A0B",
-  "theme_color": "#10B981",
+  "background_color": "#10141B",
+  "theme_color": "#1B8F72",
   "lang": "fr",
   "icons": [
     {

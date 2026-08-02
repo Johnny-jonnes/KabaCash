@@ -8,7 +8,7 @@ export default function PrivacyPolicyPage() {
   const router = useRouter();
 
   const handleAccept = () => {
-    localStorage.setItem('kabacash_privacy_accepted', 'true');
+    localStorage.setItem('kabacash_privacy_accepted', 'true'); // clé de stockage historique conservée (voir authStore) — ne pas renommer, casserait la session des utilisateurs existants
     router.replace('/login');
   };
 
@@ -29,18 +29,18 @@ export default function PrivacyPolicyPage() {
         <section className="space-y-4">
           <h2 className="text-xl font-bold text-foreground">Chapitre 1 : Introduction et Définitions</h2>
           
-          <h3 className="text-base font-semibold text-foreground mt-4">1.1 Présentation de KabaCash</h3>
-          <p>KabaCash est une application de gestion financière personnelle et de micro-entreprise, développée par la société <strong>TrillionX</strong> pour répondre aux besoins spécifiques des utilisateurs en Afrique de l'Ouest, et plus particulièrement en République de Guinée. L'application permet à ses utilisateurs de suivre leurs revenus, dépenses, budgets, comptes bancaires et portefeuilles de monnaie mobile de manière simple, sécurisée et accessible même sans connexion internet.</p>
-          <p>KabaCash est conçue selon le principe "offline-first" (local d'abord), ce qui signifie que toutes les données financières sont stockées en priorité sur l'appareil de l'utilisateur, garantissant ainsi un accès permanent aux informations même en l'absence de réseau.</p>
-          <p>La présente politique de confidentialité a pour objectif de vous informer de manière transparente, exhaustive et compréhensible sur la façon dont KabaCash collecte, utilise, stocke, protège et s'engage à <strong>ne pas partager</strong> vos données personnelles. En utilisant KabaCash, vous reconnaissez avoir pris connaissance de la présente politique et en accepter les termes.</p>
+          <h3 className="text-base font-semibold text-foreground mt-4">1.1 Présentation de FinaX</h3>
+          <p>FinaX est une application de gestion financière personnelle et de micro-entreprise, développée par la société <strong>TrillionX</strong> pour répondre aux besoins spécifiques des utilisateurs en Afrique de l'Ouest, et plus particulièrement en République de Guinée. L'application permet à ses utilisateurs de suivre leurs revenus, dépenses, budgets, comptes bancaires et portefeuilles de monnaie mobile de manière simple, sécurisée et accessible même sans connexion internet.</p>
+          <p>FinaX est conçue selon le principe "offline-first" (local d'abord), ce qui signifie que toutes les données financières sont stockées en priorité sur l'appareil de l'utilisateur, garantissant ainsi un accès permanent aux informations même en l'absence de réseau.</p>
+          <p>La présente politique de confidentialité a pour objectif de vous informer de manière transparente, exhaustive et compréhensible sur la façon dont FinaX collecte, utilise, stocke, protège et s'engage à <strong>ne pas partager</strong> vos données personnelles. En utilisant FinaX, vous reconnaissez avoir pris connaissance de la présente politique et en accepter les termes.</p>
 
           <h3 className="text-base font-semibold text-foreground mt-4">1.2 Définitions</h3>
           <p>Aux fins de la présente politique, les termes suivants sont définis comme suit :</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Données personnelles</strong> : toute information se rapportant à une personne physique identifiée ou identifiable, directement ou indirectement, notamment par référence à un identifiant tel qu'un nom, une adresse e-mail, etc.</li>
             <li><strong>Traitement</strong> : toute opération effectuée sur des données personnelles, telles que la collecte, l'enregistrement, le stockage, etc.</li>
-            <li><strong>Responsable du traitement</strong> : l'entreprise TrillionX qui détermine les finalités et les moyens du traitement des données personnelles dans le cadre de KabaCash.</li>
-            <li><strong>Utilisateur</strong> : toute personne physique qui utilise l'application KabaCash.</li>
+            <li><strong>Responsable du traitement</strong> : l'entreprise TrillionX qui détermine les finalités et les moyens du traitement des données personnelles dans le cadre de FinaX.</li>
+            <li><strong>Utilisateur</strong> : toute personne physique qui utilise l'application FinaX.</li>
             <li><strong>Stockage local</strong> : le stockage de données directement sur l'appareil de l'utilisateur, via la technologie IndexedDB du navigateur web, sans transmission à un serveur distant.</li>
             <li><strong>Service cloud</strong> : service de stockage à distance pour l'authentification et la sauvegarde synchronisée.</li>
             <li><strong>PIN</strong> : Code d'Identification Personnel, utilisé pour sécuriser l'accès à l'application.</li>
@@ -48,7 +48,7 @@ export default function PrivacyPolicyPage() {
           </ul>
 
           <h3 className="text-base font-semibold text-foreground mt-4">1.3 Date d'entrée en vigueur</h3>
-          <p>La présente politique de confidentialité entre en vigueur à compter du 16 juin 2026 et s'applique à toutes les versions de l'application KabaCash distribuées à partir de cette date.</p>
+          <p>La présente politique de confidentialité entre en vigueur à compter du 16 juin 2026 et s'applique à toutes les versions de l'application FinaX distribuées à partir de cette date.</p>
         </section>
 
         {/* ========== CHAPITRE 2 ========== */}
@@ -56,7 +56,7 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-xl font-bold text-foreground">Chapitre 2 : Responsable du Traitement des Données</h2>
 
           <h3 className="text-base font-semibold text-foreground mt-4">2.1 Identité et coordonnées</h3>
-          <p>Le responsable du traitement des données personnelles collectées et traitées dans le cadre de l'utilisation de KabaCash est :</p>
+          <p>Le responsable du traitement des données personnelles collectées et traitées dans le cadre de l'utilisation de FinaX est :</p>
           <div className="bg-muted p-4 rounded-lg space-y-1">
             <p><strong>Éditeur</strong> : TrillionX</p>
             <p><strong>Adresse</strong> : Conakry, République de Guinée</p>
@@ -72,7 +72,7 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-xl font-bold text-foreground">Chapitre 3 : Données Collectées</h2>
 
           <h3 className="text-base font-semibold text-foreground mt-4">3.1 Données d'inscription et d'identification</h3>
-          <p>Lors de la création d'un compte sur KabaCash, nous collectons :</p>
+          <p>Lors de la création d'un compte sur FinaX, nous collectons :</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Adresse électronique (email) : utilisée comme identifiant unique de connexion.</li>
             <li>Mot de passe : stocké sous forme hachée et salée. TrillionX n'a jamais accès à votre mot de passe en clair.</li>
@@ -81,7 +81,7 @@ export default function PrivacyPolicyPage() {
           </ul>
 
           <h3 className="text-base font-semibold text-foreground mt-4">3.2 Données financières</h3>
-          <p>KabaCash collecte et stocke les données financières (comptes, transactions, budgets, catégories) <strong>exclusivement sur votre appareil (stockage local)</strong> en mode hors ligne. Ces données ne sont transmises à nos serveurs que si vous activez explicitement la fonctionnalité de synchronisation cloud pour vos sauvegardes.</p>
+          <p>FinaX collecte et stocke les données financières (comptes, transactions, budgets, catégories) <strong>exclusivement sur votre appareil (stockage local)</strong> en mode hors ligne. Ces données ne sont transmises à nos serveurs que si vous activez explicitement la fonctionnalité de synchronisation cloud pour vos sauvegardes.</p>
 
           <h3 className="text-base font-semibold text-foreground mt-4">3.3 Données de sécurité</h3>
           <p>Si vous choisissez d'activer le verrouillage par code PIN, votre code PIN n'est JAMAIS stocké en clair. Il est transformé par un algorithme cryptographique SHA-256. Cette empreinte reste exclusivement sur votre appareil et n'est jamais transmise aux serveurs de TrillionX.</p>
@@ -97,7 +97,7 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <h3 className="text-base font-semibold text-foreground mt-4">4.1 Prestataires techniques</h3>
-          <p>Pour assurer le fonctionnement technique de l'application (hébergement, authentification), TrillionX fait appel à des prestataires de classe mondiale (Supabase, Vercel) soumis à des exigences strictes de sécurité. Ils n'ont pas l'autorisation d'exploiter vos données à d'autres fins que le strict fonctionnement de l'infrastructure de KabaCash.</p>
+          <p>Pour assurer le fonctionnement technique de l'application (hébergement, authentification), TrillionX fait appel à des prestataires de classe mondiale (Supabase, Vercel) soumis à des exigences strictes de sécurité. Ils n'ont pas l'autorisation d'exploiter vos données à d'autres fins que le strict fonctionnement de l'infrastructure de FinaX.</p>
         </section>
 
         {/* ========== CHAPITRE 5 ========== */}
@@ -108,7 +108,7 @@ export default function PrivacyPolicyPage() {
           <p>La grande majorité de vos données personnelles et financières sont stockées exclusivement sur votre appareil. Cette approche garantit que vos informations financières ne quittent pas votre téléphone sans votre autorisation.</p>
 
           <h3 className="text-base font-semibold text-foreground mt-4">5.2 Sécurité et Chiffrement</h3>
-          <p>Toutes les communications entre l'application KabaCash et les serveurs d'authentification sont chiffrées à l'aide du protocole HTTPS/TLS. Les mots de passe et codes PIN sont chiffrés et hachés de manière irréversible.</p>
+          <p>Toutes les communications entre l'application FinaX et les serveurs d'authentification sont chiffrées à l'aide du protocole HTTPS/TLS. Les mots de passe et codes PIN sont chiffrés et hachés de manière irréversible.</p>
         </section>
 
         {/* ========== CHAPITRE 6 ========== */}
@@ -116,7 +116,7 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-xl font-bold text-foreground">Chapitre 6 : Cookies et Suivi</h2>
 
           <h3 className="text-base font-semibold text-foreground mt-4">6.1 Absence de tracking publicitaire</h3>
-          <p>KabaCash ne contient aucun SDK publicitaire, aucun pixel de suivi, et aucun outil d'analyse tiers. Votre activité au sein de l'application n'est ni suivie, ni profilée.</p>
+          <p>FinaX ne contient aucun SDK publicitaire, aucun pixel de suivi, et aucun outil d'analyse tiers. Votre activité au sein de l'application n'est ni suivie, ni profilée.</p>
         </section>
 
         {/* ========== CHAPITRE 7 ========== */}
@@ -141,9 +141,9 @@ export default function PrivacyPolicyPage() {
           <p>La présente politique de confidentialité est régie par les lois de la République de Guinée. Tout litige relatif à l'interprétation ou à l'exécution de la présente politique sera soumis à la compétence exclusive des tribunaux de Conakry, République de Guinée.</p>
 
           <h3 className="text-base font-semibold text-foreground mt-4">8.2 Contactez TrillionX</h3>
-          <p>Pour toute question ou réclamation concernant la présente politique de confidentialité développée par TrillionX pour KabaCash, vous pouvez nous contacter :</p>
+          <p>Pour toute question ou réclamation concernant la présente politique de confidentialité développée par TrillionX pour FinaX, vous pouvez nous contacter :</p>
           <div className="bg-muted p-4 rounded-lg space-y-1">
-            <p><strong>Support KabaCash</strong> : trillionnx@gmail.com</p>
+            <p><strong>Support FinaX</strong> : trillionnx@gmail.com</p>
             <p><strong>Protection des données</strong> : trillionnx@gmail.com</p>
           </div>
         </section>

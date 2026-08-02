@@ -17,7 +17,7 @@ export function NotificationGenerator() {
     if (!userId || hasRun.current) return;
     hasRun.current = true;
     generateNotifications(userId).catch((err) => {
-      console.error('[KabaCash] Erreur génération des notifications:', err);
+      console.error('[FinaX] Erreur génération des notifications:', err);
     });
   }, [userId]);
 

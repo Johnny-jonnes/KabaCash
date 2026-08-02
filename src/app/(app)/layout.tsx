@@ -57,7 +57,7 @@ export default function AppLayout({
         setIsLoading(false);
       } else if (error && isAuthenticated && user) {
         // Erreur réseau mais session locale disponible → accès offline
-        console.warn('[KabaCash] Session Supabase indisponible, mode hors-ligne actif.');
+        console.warn('[FinaX] Session Supabase indisponible, mode hors-ligne actif.');
         setIsLoading(false);
       } else {
         // Pas de session Supabase ET pas de session locale → rediriger
@@ -67,7 +67,7 @@ export default function AppLayout({
     }).catch(() => {
       // Timeout/erreur réseau : si session locale dispo, on continue en offline
       if (isAuthenticated && user) {
-        console.warn('[KabaCash] Impossible de contacter Supabase, mode hors-ligne actif.');
+        console.warn('[FinaX] Impossible de contacter Supabase, mode hors-ligne actif.');
         setIsLoading(false);
       } else {
         logout();

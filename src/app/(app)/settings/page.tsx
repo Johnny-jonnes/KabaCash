@@ -156,7 +156,7 @@ export default function SettingsPage() {
         </Button>
         
         <p className="text-center text-xs text-muted-foreground mt-8 pb-4">
-          KabaCash v1.0.0
+          FinaX v1.0.0
         </p>
 
       </div>
