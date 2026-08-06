@@ -9,10 +9,13 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { SyncEngine } from '@/lib/sync/engine';
 import { useSyncStore } from '@/stores/syncStore';
+import { useAuthStore } from '@/stores/authStore';
+import { pullAllMyData } from '@/lib/sync/pull';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export default function SyncPage() {
+  const { user } = useAuthStore();
   const [isSyncing, setIsSyncing] = useState(false);
   const lastSyncTime = useSyncStore((s) => s.lastSyncTime);
 
@@ -21,20 +24,28 @@ export default function SyncPage() {
   const pendingCount = pendingItems.length;
   const itemsWithErrors = pendingItems.filter(i => i.retry_count > 0 && i.last_error);
 
+  // Envoie les modifications en attente ET récupère ce qui manquerait localement
+  // (espaces, comptes partagés...) — avant ce correctif, ce bouton ne faisait que
+  // pousser, jamais récupérer, et restait désactivé s'il n'y avait rien à pousser :
+  // aucun moyen de relancer une récupération ratée (ex: coupure réseau au démarrage).
   const handleForceSync = async () => {
     if (!navigator.onLine) {
       toast.warning('Pas de connexion', { description: 'La synchronisation reprendra automatiquement au retour du réseau.' });
       return;
     }
+    if (!user) return;
     setIsSyncing(true);
     try {
       await SyncEngine.processQueue(true);
+      await pullAllMyData(user.id);
       const error = useSyncStore.getState().syncError;
       if (error) {
         toast.error('Synchronisation incomplète', { description: error });
       } else {
         toast.success('Données synchronisées');
       }
+    } catch {
+      toast.error('Erreur lors de la récupération des données');
     } finally {
       setIsSyncing(false);
     }
@@ -70,9 +81,9 @@ export default function SyncPage() {
               </p>
             )}
 
-            <Button 
-              onClick={handleForceSync} 
-              disabled={isSyncing || pendingCount === 0} 
+            <Button
+              onClick={handleForceSync}
+              disabled={isSyncing}
               className="w-full gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
