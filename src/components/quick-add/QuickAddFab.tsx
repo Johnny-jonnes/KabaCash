@@ -36,6 +36,7 @@ export function QuickAddFab() {
   const [categoryId, setCategoryId] = useState<string | undefined>();
   const [accountId, setAccountId] = useState<string | undefined>();
   const [description, setDescription] = useState('');
+  const [showNoteInput, setShowNoteInput] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const accountsRaw = useLiveQuery(() => db.accounts.toArray());
@@ -61,6 +62,7 @@ export function QuickAddFab() {
     setCategoryId(undefined);
     setAccountId(undefined);
     setDescription('');
+    setShowNoteInput(false);
   };
 
   const close = () => { setStep('closed'); resetState(); };
@@ -174,27 +176,47 @@ export function QuickAddFab() {
                   <span className="text-4xl font-bold tabular-nums">{digits ? Number(digits).toLocaleString('fr-GN') : '0'}</span>
                   <span className="text-lg text-muted-foreground ml-1.5">GNF</span>
                 </div>
-                {recentAmounts.length > 0 && (
-                  <div className="flex gap-2 justify-center mb-2 flex-wrap">
-                    {recentAmounts.map(a => (
-                      <button
-                        key={a}
-                        onClick={() => confirmAmount(a)}
-                        className="px-3 py-1.5 rounded-full bg-muted text-xs font-medium transition-transform active:scale-95 hover:bg-muted/70"
-                      >
-                        {a.toLocaleString('fr-GN')}
-                      </button>
-                    ))}
+
+                {showNoteInput ? (
+                  // Le pavé numérique est masqué pendant la saisie de la note : sans lui, le
+                  // champ reste visible au-dessus du clavier du téléphone au lieu d'être
+                  // poussé hors champ (et de faire disparaître le tiroir avec lui).
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      autoFocus
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Note (optionnel)"
+                      className="flex-1"
+                    />
+                    <Button type="button" size="sm" onClick={() => setShowNoteInput(false)}>OK</Button>
                   </div>
+                ) : (
+                  <>
+                    {recentAmounts.length > 0 && (
+                      <div className="flex gap-2 justify-center mb-2 flex-wrap">
+                        {recentAmounts.map(a => (
+                          <button
+                            key={a}
+                            onClick={() => confirmAmount(a)}
+                            className="px-3 py-1.5 rounded-full bg-muted text-xs font-medium transition-transform active:scale-95 hover:bg-muted/70"
+                          >
+                            {a.toLocaleString('fr-GN')}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowNoteInput(true)}
+                      className="w-full text-left px-3 py-2 mb-2 rounded-lg bg-muted/60 text-sm text-muted-foreground hover:bg-muted transition-colors truncate"
+                    >
+                      {description ? description : '+ Ajouter une note (optionnel)'}
+                    </button>
+                  </>
                 )}
-                <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Note (optionnel)"
-                  className="mb-2 text-center"
-                />
               </div>
-              <NumericKeypad onKey={appendDigit} />
+              {!showNoteInput && <NumericKeypad onKey={appendDigit} />}
               <DrawerFooter>
                 <Button onClick={() => confirmAmount()} disabled={amount <= 0} className="w-full" size="lg">
                   Continuer
