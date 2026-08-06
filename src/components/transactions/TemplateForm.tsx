@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db/dexie';
 import { useAuthStore } from '@/stores/authStore';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { useCategories } from '@/hooks/useCategories';
 import { createTemplate } from '@/lib/transactions/templates';
 import { Button } from '@/components/ui/button';
@@ -16,7 +18,9 @@ import type { TransactionType } from '@/types/enums';
 
 export function TemplateForm({ onSuccess }: { onSuccess?: () => void }) {
   const { user } = useAuthStore();
-  const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const accounts = filterBySpace(allAccounts, activeSpaceId);
   const [type, setType] = useState<TransactionType>('expense');
   const [accountId, setAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');

@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatAmount } from '@/lib/finance/format';
 import { useCategories } from '@/hooks/useCategories';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -23,7 +24,10 @@ export function PlannedEntryRow({ entry }: { entry: DBPlannedEntry }) {
   const { user } = useAuthStore();
   const categories = useCategories(entry.type);
   const categoryDef = categories.find(c => c.name === entry.category_id);
-  const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  // Comptes de l'espace de CETTE prévision (pas l'espace actif du switcher) : cohérent
+  // avec le contexte dans lequel la prévision a été planifiée.
+  const accounts = filterBySpace(allAccounts, entry.space_id ?? null);
 
   const [view, setView] = useState<'closed' | 'menu' | 'realize' | 'edit'>('closed');
   const [realizeAccountId, setRealizeAccountId] = useState(entry.account_id || '');

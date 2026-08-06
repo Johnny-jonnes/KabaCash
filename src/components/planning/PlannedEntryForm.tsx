@@ -7,6 +7,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db/dexie';
 import { useAuthStore } from '@/stores/authStore';
 import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { plannedEntrySchema, type PlannedEntryFormData } from '@/schemas/plannedEntry.schema';
 import { createPlannedEntry, updatePlannedEntry } from '@/lib/planning/planningActions';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,8 @@ export function PlannedEntryForm({ onSuccess, editingEntry }: { onSuccess?: () =
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = !!editingEntry;
 
-  const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const accounts = filterBySpace(allAccounts, activeSpaceId);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<PlannedEntryFormData>({
     resolver: zodResolver(plannedEntrySchema),

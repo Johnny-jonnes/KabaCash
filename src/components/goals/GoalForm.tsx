@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -16,6 +16,7 @@ import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import type { DBSavingsGoal } from '@/types/database';
 import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 
 const GOAL_ICONS = ['bike', 'car', 'home', 'smartphone', 'plane', 'graduation-cap', 'target', 'piggy-bank', 'gift', 'briefcase'];
 const GOAL_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#14B8A6'];
@@ -25,7 +26,16 @@ export function GoalForm({ onSuccess, editingGoal }: { onSuccess?: () => void; e
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = !!editingGoal;
-  const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccountsRaw = useLiveQuery(() => db.accounts.toArray());
+  const accounts = useMemo(() => {
+    const allAccounts = allAccountsRaw || [];
+    const filtered = filterBySpace(allAccounts, activeSpaceId);
+    if (editingGoal?.account_id && !filtered.some(a => a.id === editingGoal.account_id)) {
+      const current = allAccounts.find(a => a.id === editingGoal.account_id);
+      if (current) return [current, ...filtered];
+    }
+    return filtered;
+  }, [allAccountsRaw, activeSpaceId, editingGoal]);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema),

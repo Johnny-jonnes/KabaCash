@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db/dexie';
 import { useAuthStore } from '@/stores/authStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { contributeToGoal } from '@/lib/goals/goalActions';
 import { InsufficientFundsError } from '@/lib/transactions/createTransaction';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,10 @@ import type { DBSavingsGoal } from '@/types/database';
 
 export function ContributeForm({ goal, onSuccess }: { goal: DBSavingsGoal; onSuccess?: () => void }) {
   const { user } = useAuthStore();
-  const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  // Comptes de l'espace de CET objectif (pas nécessairement l'espace actif du switcher) :
+  // on veut contribuer avec un compte cohérent avec l'objectif, pas avec la vue courante.
+  const accounts = filterBySpace(allAccounts, goal.space_id ?? null);
   const [digits, setDigits] = useState('');
   const [accountId, setAccountId] = useState(goal.account_id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);

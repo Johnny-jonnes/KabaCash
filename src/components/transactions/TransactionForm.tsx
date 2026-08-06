@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { db } from '@/lib/db/dexie';
 import { useAuthStore } from '@/stores/authStore';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { transactionSchema, type TransactionFormData } from '@/schemas/transaction.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,11 +41,24 @@ export function TransactionForm({
   editingTransaction,
 }: TransactionFormProps) {
   const { user } = useAuthStore();
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState('');
   const isEditing = !!editingTransaction;
 
-  const accounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccountsRaw = useLiveQuery(() => db.accounts.toArray());
+  // Comptes de l'espace actif uniquement — voir QuickAddFab.tsx pour le détail du bug
+  // corrigé. En édition, le compte déjà assigné reste proposé même s'il appartient à
+  // un autre espace, pour ne jamais faire disparaître la valeur actuelle du select.
+  const accounts = useMemo(() => {
+    const allAccounts = allAccountsRaw || [];
+    const filtered = filterBySpace(allAccounts, activeSpaceId);
+    if (editingTransaction && !filtered.some(a => a.id === editingTransaction.account_id)) {
+      const current = allAccounts.find(a => a.id === editingTransaction.account_id);
+      if (current) return [current, ...filtered];
+    }
+    return filtered;
+  }, [allAccountsRaw, activeSpaceId, editingTransaction]);
 
   const editCurrency = editingTransaction?.currency === 'USD' || editingTransaction?.currency === 'EUR'
     ? editingTransaction.currency

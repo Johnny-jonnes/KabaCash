@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db/dexie';
 import { useAuthStore } from '@/stores/authStore';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { useCategories } from '@/hooks/useCategories';
 import { createTransaction, InsufficientFundsError } from '@/lib/transactions/createTransaction';
 import { getRecentAmounts, sortAccountsByRecency, sortCategoriesByUsage } from '@/lib/insights/suggestions';
@@ -12,6 +14,7 @@ import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { NumericKeypad } from '@/components/quick-add/NumericKeypad';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Plus, ArrowUpRight, ArrowDownRight, Repeat, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TransactionType } from '@/types/enums';
@@ -26,15 +29,24 @@ const TYPE_META: Record<TransactionType, { label: string; icon: typeof ArrowUpRi
 
 export function QuickAddFab() {
   const { user } = useAuthStore();
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [step, setStep] = useState<Step>('closed');
   const [type, setType] = useState<TransactionType>('expense');
   const [digits, setDigits] = useState('');
   const [categoryId, setCategoryId] = useState<string | undefined>();
   const [accountId, setAccountId] = useState<string | undefined>();
+  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const accountsRaw = useLiveQuery(() => db.accounts.toArray());
-  const activeAccounts = useMemo(() => (accountsRaw || []).filter(a => !a.deleted_at), [accountsRaw]);
+  // Comptes de l'espace actif uniquement (Personnel si aucun espace actif) : mélanger
+  // les comptes de tous les espaces dans une même liste était la cause du "mauvais
+  // compte sélectionné" — l'utilisateur tapait dans une liste qui ne correspondait pas
+  // à l'espace où il pensait être.
+  const activeAccounts = useMemo(
+    () => filterBySpace((accountsRaw || []).filter(a => !a.deleted_at), activeSpaceId),
+    [accountsRaw, activeSpaceId]
+  );
   const recentTxRaw = useLiveQuery(() => db.transactions.orderBy('created_at').reverse().limit(200).toArray());
   const categoriesRaw = useCategories(type === 'transfer' ? undefined : type);
 
@@ -48,6 +60,7 @@ export function QuickAddFab() {
     setDigits('');
     setCategoryId(undefined);
     setAccountId(undefined);
+    setDescription('');
   };
 
   const close = () => { setStep('closed'); resetState(); };
@@ -80,6 +93,7 @@ export function QuickAddFab() {
         amount,
         currency: 'GNF',
         categoryId: type === 'transfer' ? undefined : categoryId,
+        description: description.trim() || undefined,
         date: new Date().toISOString().split('T')[0],
         transferToAccountId: transferToId,
       });
@@ -173,6 +187,12 @@ export function QuickAddFab() {
                     ))}
                   </div>
                 )}
+                <Input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Note (optionnel)"
+                  className="mb-2 text-center"
+                />
               </div>
               <NumericKeypad onKey={appendDigit} />
               <DrawerFooter>
