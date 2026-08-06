@@ -6,6 +6,7 @@ import { db } from '@/lib/db/dexie';
 import { Header } from '@/components/layout/Header';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import { AccountForm } from '@/components/accounts/AccountForm';
+import { MergeAccountDialog } from '@/components/accounts/MergeAccountDialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from 'lucide-react';
@@ -24,9 +25,14 @@ export default function AccountsPage() {
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<DBAccount | null>(null);
+  const [accountToMerge, setAccountToMerge] = useState<DBAccount | null>(null);
 
   const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
-  const accounts = filterBySpace(allAccounts.filter(a => !a.deleted_at), activeSpaceId);
+  const activeAccounts = allAccounts.filter(a => !a.deleted_at);
+  const accounts = filterBySpace(activeAccounts, activeSpaceId);
+  // Cible de fusion : tous les comptes actifs de l'utilisateur, pas seulement ceux de
+  // l'espace affiché — l'exemple type est justement "Personnel -> Compte Entreprise".
+  const mergeTargets = activeAccounts.filter(a => a.id !== accountToMerge?.id);
 
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
@@ -81,6 +87,7 @@ export default function AccountsPage() {
             phone_number={account.phone_number}
             bank_name={account.bank_name}
             onDelete={() => setAccountToDelete(account)}
+            onMerge={() => setAccountToMerge(account)}
           />
         ))}
       </div>
@@ -162,6 +169,14 @@ export default function AccountsPage() {
         onConfirm={handleDeleteAccount}
         title="Supprimer ce compte ?"
         description={`Êtes-vous sûr de vouloir supprimer le compte "${accountToDelete?.name}" ? L'historique de ses transactions passées restera consultable.`}
+      />
+
+      <MergeAccountDialog
+        key={accountToMerge?.id ?? 'none'}
+        open={!!accountToMerge}
+        onOpenChange={(open) => !open && setAccountToMerge(null)}
+        sourceAccount={accountToMerge}
+        targetOptions={mergeTargets}
       />
     </>
   );

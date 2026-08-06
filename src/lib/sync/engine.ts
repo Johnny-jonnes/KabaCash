@@ -13,6 +13,7 @@ const MAX_AUTO_RETRIES = 5;
 const ENTITY_TYPES_WITH_LOCAL_STATUS = new Set([
   'transactions', 'accounts', 'categories', 'budgets',
   'budget_periods', 'recurring_transactions', 'transaction_templates', 'notifications', 'savings_goals',
+  'planned_entries',
 ]);
 
 // sync_status n'existe que côté client (Dexie) : aucune colonne Supabase ne le porte.
@@ -117,6 +118,9 @@ export class SyncEngine {
         break;
       case 'savings_goals':
         await db.savingsGoals.update(entity_id, { sync_status: status });
+        break;
+      case 'planned_entries':
+        await db.plannedEntries.update(entity_id, { sync_status: status });
         break;
     }
   }

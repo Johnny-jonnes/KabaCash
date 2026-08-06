@@ -14,3 +14,6 @@ export type NotificationTone = 'info' | 'positive' | 'warning' | 'critical';
 // Espaces Famille/Entreprise (Phase 4).
 export type SpaceType = 'family' | 'business';
 export type SpaceRole = 'chef' | 'membre';
+
+// Planification (entrées datées prévues à l'avance, ex: dépenses/revenus saisonniers).
+export type PlannedEntryStatus = 'planned' | 'realized' | 'skipped';

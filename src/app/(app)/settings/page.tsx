@@ -20,7 +20,8 @@ import {
   Sun,
   Globe,
   ChevronRight,
-  Users
+  Users,
+  CalendarClock
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -73,6 +74,7 @@ export default function SettingsPage() {
       title: 'Application',
       items: [
         { icon: Users, label: 'Espaces Famille & Entreprise', href: '/spaces' },
+        { icon: CalendarClock, label: 'Planification', href: '/planning' },
         { icon: Tags, label: 'Gérer les catégories', href: '/categories' },
         { icon: theme === 'dark' ? Sun : Moon, label: theme === 'dark' ? 'Mode clair' : 'Mode sombre', action: toggleTheme },
         { icon: Globe, label: 'Langue (Français)', action: () => comingSoon('Gestion de la langue') },

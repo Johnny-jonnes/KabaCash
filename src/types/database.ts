@@ -1,4 +1,4 @@
-import { AccountType, BudgetPeriod, CategoryType, CustomDurationUnit, NotificationKind, NotificationTone, RecurrenceFrequency, SpaceRole, SpaceType, SyncStatus, TransactionType, UIMode } from './enums';
+import { AccountType, BudgetPeriod, CategoryType, CustomDurationUnit, NotificationKind, NotificationTone, PlannedEntryStatus, RecurrenceFrequency, SpaceRole, SpaceType, SyncStatus, TransactionType, UIMode } from './enums';
 
 // Espaces Famille/Entreprise (Phase 4). Un compte "personnel" a space_id = null ;
 // un compte partagé appartient à UN SEUL espace (jamais plusieurs à la fois).
@@ -117,6 +117,31 @@ export interface DBTransactionTemplate {
   sort_order: number;
   use_count: number;
   last_used_at?: string;
+  sync_status: SyncStatus;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+// Planification : entrée future prévue à une date donnée (ex: "Mars : achat semences
+// -500 000"), utile pour anticiper des dépenses/revenus saisonniers ou irréguliers
+// (gestion agricole, cycle d'entreprise...). account_id est optionnel — on peut
+// planifier un montant sans avoir encore décidé quel compte le paiera ; le compte est
+// choisi/confirmé au moment de "réaliser" l'entrée (voir lib/planning/planningActions.ts).
+export interface DBPlannedEntry {
+  id: string;
+  user_id: string;
+  space_id?: string | null;
+  account_id?: string | null;
+  category_id: string; // nom de catégorie, cohérent avec le reste de l'app (voir createTransaction.ts)
+  type: CategoryType; // 'income' | 'expense' — pas de transfert planifié
+  amount: number;
+  currency: string;
+  description: string;
+  planned_date: string; // yyyy-MM-dd
+  status: PlannedEntryStatus;
+  realized_transaction_id?: string | null;
+  sort_order: number;
   sync_status: SyncStatus;
   created_at: string;
   updated_at: string;

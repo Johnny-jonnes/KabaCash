@@ -1,8 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db/dexie';
 import { formatAmount } from '@/lib/finance/format';
-import { ArrowDownRight, ArrowUpRight, Repeat, Trash2, Pencil, Copy, Star, Share2, Tags } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Repeat, Trash2, Pencil, Copy, Star, Share2, Tags, History } from 'lucide-react';
 import { useItemGestures } from '@/hooks/useItemGestures';
 import { useCategories } from '@/hooks/useCategories';
 import { useAuthStore } from '@/stores/authStore';
@@ -13,6 +15,8 @@ import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { createTransaction, deleteTransaction, updateTransaction } from '@/lib/transactions/createTransaction';
 import { createTemplate } from '@/lib/transactions/templates';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { DBTransaction } from '@/types/database';
 
 interface TransactionItemProps {
@@ -35,10 +39,24 @@ export function TransactionItem({ title, category, amount, type, date, transacti
 
   const [isPendingDelete, setIsPendingDelete] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [actionView, setActionView] = useState<'closed' | 'menu' | 'category'>('closed');
+  const [actionView, setActionView] = useState<'closed' | 'menu' | 'category' | 'detail'>('closed');
   const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const categoryDef = categories.find(c => c.name === category);
+
+  const account = useLiveQuery(
+    () => transaction ? db.accounts.get(transaction.account_id) : undefined,
+    [transaction?.account_id]
+  );
+  const transferAccount = useLiveQuery(
+    () => transaction?.transfer_to_account_id ? db.accounts.get(transaction.transfer_to_account_id) : undefined,
+    [transaction?.transfer_to_account_id]
+  );
+  const history = useLiveQuery(
+    () => db.activityLogs.where('entity_id').equals(transaction?.id ?? '').filter(l => l.entity_type === 'transaction').toArray(),
+    [transaction?.id]
+  ) || [];
+  const sortedHistory = [...history].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const confirmDelete = () => {
     if (!transaction || !user) return;
@@ -62,6 +80,7 @@ export function TransactionItem({ title, category, amount, type, date, transacti
     onSwipeLeft: confirmDelete,
     onSwipeRight: () => setIsEditOpen(true),
     onLongPress: () => setActionView('menu'),
+    onTap: () => setActionView('detail'),
   });
 
   const handleDuplicate = async () => {
@@ -193,6 +212,60 @@ export function TransactionItem({ title, category, amount, type, date, transacti
                 </div>
               </>
             )}
+            {actionView === 'detail' && (
+              <>
+                <DrawerHeader><DrawerTitle>Détails de la transaction</DrawerTitle></DrawerHeader>
+                <div className="p-4 pb-6 space-y-5 max-h-[70vh] overflow-y-auto">
+                  <div className="text-center py-2">
+                    <p className={`text-2xl font-bold tabular-nums ${isIncome ? 'text-income' : isTransfer ? 'text-transfer' : 'text-foreground'}`}>
+                      {isIncome ? '+' : isTransfer ? '' : '-'}{formatAmount(amount, transaction.currency)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 capitalize">
+                      {isIncome ? 'Revenu' : isTransfer ? 'Transfert' : 'Dépense'}
+                    </p>
+                  </div>
+
+                  <div className="bg-muted/40 rounded-xl divide-y divide-border overflow-hidden">
+                    <DetailRow label="Description" value={transaction.description || '—'} />
+                    {!isTransfer && <DetailRow label="Catégorie" value={category} />}
+                    <DetailRow label="Compte" value={account?.name || '—'} />
+                    {isTransfer && <DetailRow label="Vers le compte" value={transferAccount?.name || '—'} />}
+                    <DetailRow label="Date" value={format(new Date(date), 'd MMMM yyyy', { locale: fr })} />
+                    <DetailRow label="Créée le" value={format(new Date(transaction.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })} />
+                    {transaction.updated_at !== transaction.created_at && (
+                      <DetailRow label="Modifiée le" value={format(new Date(transaction.updated_at), "d MMM yyyy 'à' HH:mm", { locale: fr })} />
+                    )}
+                    <DetailRow
+                      label="Synchronisation"
+                      value={transaction.sync_status === 'synced' ? 'Synchronisée' : 'En attente'}
+                    />
+                  </div>
+
+                  <div>
+                    <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      <History className="w-3.5 h-3.5" /> Historique
+                    </p>
+                    {sortedHistory.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-2">Aucun historique enregistré.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {sortedHistory.map(entry => (
+                          <div key={entry.id} className="flex items-start gap-2.5 text-xs">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-foreground">{entry.description}</p>
+                              <p className="text-muted-foreground mt-0.5">
+                                {format(new Date(entry.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
             {actionView === 'category' && (
               <>
                 <DrawerHeader><DrawerTitle>Changer de catégorie</DrawerTitle></DrawerHeader>
@@ -212,6 +285,15 @@ export function TransactionItem({ title, category, amount, type, date, transacti
         </Drawer>
       )}
     </>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+      <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+      <span className="text-sm font-medium text-right truncate">{value}</span>
+    </div>
   );
 }
 

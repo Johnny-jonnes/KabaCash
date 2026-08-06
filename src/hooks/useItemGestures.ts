@@ -6,6 +6,8 @@ interface UseItemGesturesOptions {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   onLongPress?: () => void;
+  /** Appui bref sans glissement ni appui long — distinct de onClick natif pour ne jamais se déclencher pendant/après un swipe. */
+  onTap?: () => void;
   swipeThreshold?: number;
   maxSwipe?: number;
   longPressDelay?: number;
@@ -23,6 +25,7 @@ export function useItemGestures({
   onSwipeLeft,
   onSwipeRight,
   onLongPress,
+  onTap,
   swipeThreshold = 72,
   maxSwipe = 96,
   longPressDelay = 500,
@@ -79,10 +82,12 @@ export function useItemGestures({
     if (!longPressFired.current) {
       if (translateX <= -swipeThreshold) onSwipeLeft?.();
       else if (translateX >= swipeThreshold) onSwipeRight?.();
+      // Ni glissement (axe jamais verrouillé, translateX resté à 0) ni appui long : un tap propre.
+      else if (translateX === 0 && axis.current === null) onTap?.();
     }
     setTranslateX(0);
     axis.current = null;
-  }, [translateX, swipeThreshold, onSwipeLeft, onSwipeRight, clearLongPressTimer]);
+  }, [translateX, swipeThreshold, onSwipeLeft, onSwipeRight, onTap, clearLongPressTimer]);
 
   return {
     translateX,

@@ -1,5 +1,5 @@
 import { formatAmount } from '@/lib/finance/format';
-import { Wallet, Smartphone, Landmark, Briefcase, Trash2 } from 'lucide-react';
+import { Wallet, Smartphone, Landmark, Briefcase, Trash2, ArrowRightLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AccountType } from '@/types/enums';
 
@@ -13,6 +13,7 @@ interface AccountCardProps {
   phone_number?: string;
   bank_name?: string;
   onDelete?: () => void;
+  onMerge?: () => void;
 }
 
 const TYPE_ICONS = {
@@ -29,7 +30,7 @@ const TYPE_LABELS: Record<string, string> = {
   business: 'Compte Pro',
 };
 
-export function AccountCard({ name, type, balance, currency, color, operator, phone_number, bank_name, onDelete }: AccountCardProps) {
+export function AccountCard({ name, type, balance, currency, color, operator, phone_number, bank_name, onDelete, onMerge }: AccountCardProps) {
   const Icon = TYPE_ICONS[type] || Wallet;
   const accentColor = color || '#3B82F6';
 
@@ -66,8 +67,21 @@ export function AccountCard({ name, type, balance, currency, color, operator, ph
                 <p className="font-bold text-base tabular-nums">{formatAmount(balance, currency)}</p>
                 <p className="text-[10px] text-muted-foreground">{currency}</p>
               </div>
+              {onMerge && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onMerge();
+                  }}
+                  title="Transférer vers un autre compte"
+                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                >
+                  <ArrowRightLeft className="w-4 h-4" />
+                </button>
+              )}
               {onDelete && (
-                <button 
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
