@@ -3,11 +3,13 @@
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { generateNotifications } from '@/lib/notifications/generateNotifications';
+import { runWeeklyNotificationCleanupIfDue } from '@/lib/notifications/notificationActions';
 
 /**
  * Fait tourner une fois par session les moteurs déterministes (score, prévisions,
- * intelligence, recommandations) pour alimenter le centre de notifications. Aucun
- * rendu — composant purement fonctionnel, monté une fois dans (app)/layout.tsx.
+ * intelligence, recommandations) pour alimenter le centre de notifications, et
+ * purge les notifications lues une fois par semaine (voir notificationActions.ts).
+ * Aucun rendu — composant purement fonctionnel, monté une fois dans (app)/layout.tsx.
  */
 export function NotificationGenerator() {
   const userId = useAuthStore((s) => s.user?.id);
@@ -18,6 +20,9 @@ export function NotificationGenerator() {
     hasRun.current = true;
     generateNotifications(userId).catch((err) => {
       console.error('[FinaX] Erreur génération des notifications:', err);
+    });
+    runWeeklyNotificationCleanupIfDue(userId).catch((err) => {
+      console.error('[FinaX] Erreur nettoyage des notifications:', err);
     });
   }, [userId]);
 

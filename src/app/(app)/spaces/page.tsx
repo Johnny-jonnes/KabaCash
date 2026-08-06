@@ -12,10 +12,12 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { SpaceForm } from '@/components/spaces/SpaceForm';
 import { JoinSpaceForm } from '@/components/spaces/JoinSpaceForm';
 import { MemberSpendingReport } from '@/components/spaces/MemberSpendingReport';
+import { MergeAccountDialog } from '@/components/accounts/MergeAccountDialog';
 import { leaveSpace, removeMember } from '@/lib/spaces/spaceActions';
-import { Users, Briefcase, Plus, KeyRound, Copy, LogOut, UserMinus, Crown } from 'lucide-react';
+import { formatAmount } from '@/lib/finance/format';
+import { Users, Briefcase, Plus, KeyRound, Copy, LogOut, UserMinus, Crown, Wallet, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import type { DBSpace } from '@/types/database';
+import type { DBAccount, DBSpace } from '@/types/database';
 
 export default function SpacesPage() {
   const { user } = useAuthStore();
@@ -23,6 +25,7 @@ export default function SpacesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [detailSpace, setDetailSpace] = useState<DBSpace | null>(null);
+  const [accountToMerge, setAccountToMerge] = useState<DBAccount | null>(null);
 
   const memberships = useLiveQuery(() =>
     db.spaceMembers.where('user_id').equals(user?.id ?? '').filter(m => !m.deleted_at).toArray()
@@ -34,6 +37,12 @@ export default function SpacesPage() {
     db.spaceMembers.where('space_id').equals(detailSpace?.id ?? '').filter(m => !m.deleted_at).toArray()
   , [detailSpace?.id]) || [];
   const myRoleInDetail = allMembers.find(m => m.user_id === user?.id)?.role;
+
+  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const spaceAccounts = allAccounts.filter(a => a.space_id === detailSpace?.id && !a.deleted_at);
+  // Cible de fusion : tout compte actif autre que la source, personnel ou d'un autre
+  // espace — cohérent avec la fusion depuis la page Comptes (ex: Personnel -> Ferme).
+  const mergeTargets = allAccounts.filter(a => !a.deleted_at && a.id !== accountToMerge?.id);
 
   const copyCode = (code: string) => {
     navigator.clipboard?.writeText(code);
@@ -147,6 +156,34 @@ export default function SpacesPage() {
                 </button>
               </div>
 
+              {spaceAccounts.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Comptes de l&apos;espace ({spaceAccounts.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {spaceAccounts.map(account => (
+                      <div key={account.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm truncate">{account.name}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums shrink-0">{formatAmount(account.balance, account.currency)}</span>
+                        </div>
+                        {myRoleInDetail === 'chef' && (
+                          <button
+                            onClick={() => setAccountToMerge(account)}
+                            title="Transférer vers un autre compte"
+                            className="p-1.5 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                          >
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Membres ({allMembers.length})
@@ -187,6 +224,14 @@ export default function SpacesPage() {
           )}
         </DrawerContent>
       </Drawer>
+
+      <MergeAccountDialog
+        key={accountToMerge?.id ?? 'none'}
+        open={!!accountToMerge}
+        onOpenChange={(open) => !open && setAccountToMerge(null)}
+        sourceAccount={accountToMerge}
+        targetOptions={mergeTargets}
+      />
     </>
   );
 }

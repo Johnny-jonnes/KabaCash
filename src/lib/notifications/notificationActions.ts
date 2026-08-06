@@ -76,3 +76,34 @@ export async function dismissNotification(notificationId: string): Promise<void>
   await db.notifications.put(updated);
   await SyncEngine.queueOperation('notifications', notificationId, 'delete', updated);
 }
+
+/** Supprime (suppression douce) toutes les notifications déjà lues d'un coup. */
+export async function deleteAllReadNotifications(userId: string): Promise<number> {
+  const read = await db.notifications.where('user_id').equals(userId).filter(n => !!n.read_at && !n.deleted_at).toArray();
+  const now = new Date().toISOString();
+  for (const notification of read) {
+    const updated: DBNotification = { ...notification, deleted_at: now, updated_at: now, sync_status: 'pending' };
+    await db.notifications.put(updated);
+    await SyncEngine.queueOperation('notifications', notification.id, 'delete', updated);
+  }
+  return read.length;
+}
+
+const CLEANUP_STORAGE_KEY = 'kabacash_notif_cleanup_last_run';
+const CLEANUP_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Nettoyage automatique hebdomadaire des notifications lues — appelé une fois par
+ * session (voir NotificationGenerator) mais ne s'exécute réellement que si 7 jours
+ * se sont écoulés depuis le dernier passage (horodatage en localStorage, propre à
+ * cet appareil : chaque appareil fait son propre ménage local, pas de coordination
+ * multi-appareils nécessaire pour une simple purge de confort).
+ */
+export async function runWeeklyNotificationCleanupIfDue(userId: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const lastRun = localStorage.getItem(CLEANUP_STORAGE_KEY);
+  if (lastRun && Date.now() - new Date(lastRun).getTime() < CLEANUP_INTERVAL_MS) return;
+
+  await deleteAllReadNotifications(userId);
+  localStorage.setItem(CLEANUP_STORAGE_KEY, new Date().toISOString());
+}

@@ -15,7 +15,7 @@ import { NumericKeypad } from '@/components/quick-add/NumericKeypad';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, ArrowUpRight, ArrowDownRight, Repeat, ChevronLeft } from 'lucide-react';
+import { Plus, ArrowUpRight, ArrowDownRight, Repeat, ChevronLeft, Check, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TransactionType } from '@/types/enums';
 
@@ -180,16 +180,24 @@ export function QuickAddFab() {
                 {showNoteInput ? (
                   // Le pavé numérique est masqué pendant la saisie de la note : sans lui, le
                   // champ reste visible au-dessus du clavier du téléphone au lieu d'être
-                  // poussé hors champ (et de faire disparaître le tiroir avec lui).
-                  <div className="flex gap-2 mb-3">
+                  // poussé hors champ (et de faire disparaître le tiroir avec lui). Prend la
+                  // place laissée libre par le pavé plutôt qu'une simple ligne étroite.
+                  <div className="py-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label htmlFor="quick-add-note" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">
+                      Note
+                    </label>
                     <Input
+                      id="quick-add-note"
                       autoFocus
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Note (optionnel)"
-                      className="flex-1"
+                      placeholder="Ex: Achat de semences"
+                      className="h-12 text-center text-base"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setShowNoteInput(false); } }}
                     />
-                    <Button type="button" size="sm" onClick={() => setShowNoteInput(false)}>OK</Button>
+                    <Button type="button" onClick={() => setShowNoteInput(false)} className="w-full gap-1.5">
+                      <Check className="w-4 h-4" /> Valider la note
+                    </Button>
                   </div>
                 ) : (
                   <>
@@ -209,9 +217,10 @@ export function QuickAddFab() {
                     <button
                       type="button"
                       onClick={() => setShowNoteInput(true)}
-                      className="w-full text-left px-3 py-2 mb-2 rounded-lg bg-muted/60 text-sm text-muted-foreground hover:bg-muted transition-colors truncate"
+                      className="w-full flex items-center gap-2 text-left px-3 py-2 mb-2 rounded-lg bg-muted/60 text-sm text-muted-foreground hover:bg-muted transition-colors"
                     >
-                      {description ? description : '+ Ajouter une note (optionnel)'}
+                      {description ? <Pencil className="w-3.5 h-3.5 shrink-0" /> : null}
+                      <span className="truncate">{description ? description : '+ Ajouter une note (optionnel)'}</span>
                     </button>
                   </>
                 )}
