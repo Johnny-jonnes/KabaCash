@@ -10,6 +10,7 @@ import { NetworkStatus } from '@/components/pwa/NetworkStatus';
 import { QuickAddFab } from '@/components/quick-add/QuickAddFab';
 import { NotificationGenerator } from '@/components/notifications/NotificationGenerator';
 import { SpaceSync } from '@/components/spaces/SpaceSync';
+import { CategorySeeder } from '@/components/categories/CategorySeeder';
 
 export default function AppLayout({
   children,
@@ -129,6 +130,7 @@ export default function AppLayout({
 
         {/* Écouteur de réseau + sync automatique */}
         <NetworkStatus />
+        <CategorySeeder />
         <NotificationGenerator />
         <SpaceSync />
       </div>
