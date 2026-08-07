@@ -5,7 +5,7 @@ import { forecastFinances } from '@/lib/finance/forecast';
 import { analyzeFinances } from '@/lib/insights/intelligence';
 import { generateInsights, type Insight } from '@/lib/insights/generate';
 import { generateRecommendations } from '@/lib/insights/recommendations';
-import { upsertNotification } from '@/lib/notifications/notificationActions';
+import { upsertNotification, resolveStaleNotifications } from '@/lib/notifications/notificationActions';
 import type { NotificationKind } from '@/types/enums';
 
 const INSIGHT_KIND_MAP: Record<Insight['kind'], NotificationKind> = {
@@ -89,4 +89,24 @@ export async function generateNotifications(userId: string): Promise<void> {
   }
 
   await Promise.all(tasks);
+
+  // Résout automatiquement toute alerte générée par ce moteur qui ne correspond plus
+  // à rien d'actuellement valide (ex: budget repassé sous le seuil, dépenses
+  // redevenues normales) — sinon une alerte résolue restait affichée indéfiniment
+  // comme si le problème persistait, ce qui rendait le centre d'alertes incohérent
+  // avec l'état réel des finances. Couvre tous les types issus des moteurs
+  // (insights + recommandations), pas seulement les budgets.
+  // Toujours initialiser les kinds possibles à un ensemble vide : sinon, un kind
+  // n'ayant PLUS aucune alerte valide ce tour-ci (ex: 0 budget en dépassement alors
+  // qu'il y en avait un la dernière fois) ne serait jamais résolu, faute d'entrée.
+  const currentTitlesByKind = new Map<NotificationKind, Set<string>>();
+  for (const kind of new Set([...Object.values(INSIGHT_KIND_MAP), ...Object.values(RECOMMENDATION_KIND_MAP)])) {
+    currentTitlesByKind.set(kind, new Set());
+  }
+  for (const insight of insights) currentTitlesByKind.get(INSIGHT_KIND_MAP[insight.kind])!.add(insight.title);
+  for (const rec of recommendations) currentTitlesByKind.get(RECOMMENDATION_KIND_MAP[rec.id] || 'advice')!.add(rec.title);
+
+  await Promise.all(
+    Array.from(currentTitlesByKind.entries()).map(([kind, titles]) => resolveStaleNotifications(userId, kind, titles))
+  );
 }

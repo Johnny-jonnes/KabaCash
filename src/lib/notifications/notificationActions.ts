@@ -25,8 +25,12 @@ export async function upsertNotification(input: NotificationInput): Promise<void
     .first();
 
   if (existing) {
-    if (existing.body === input.body) return; // rien de nouveau à dire
-    const updated: DBNotification = { ...existing, body: input.body, updated_at: new Date().toISOString(), sync_status: 'pending' };
+    // Comparer aussi tone/href, pas seulement body : une alerte de budget qui passe de
+    // "warning" (80%) à "critical" (100%+) garde le même titre (voir generate.ts) —
+    // sans mettre à jour le tone ici, elle resterait affichée en orange alors qu'elle
+    // est devenue critique.
+    if (existing.body === input.body && existing.tone === input.tone && existing.href === input.href) return;
+    const updated: DBNotification = { ...existing, body: input.body, tone: input.tone, href: input.href, updated_at: new Date().toISOString(), sync_status: 'pending' };
     await db.notifications.put(updated);
     await SyncEngine.queueOperation('notifications', updated.id, 'update', updated);
     return;
@@ -48,6 +52,26 @@ export async function upsertNotification(input: NotificationInput): Promise<void
   };
   await db.notifications.add(notification);
   await SyncEngine.queueOperation('notifications', notification.id, 'create', notification);
+}
+
+/**
+ * Marque comme lues (résolues) les alertes non lues d'un type donné dont le titre ne
+ * correspond plus à aucune alerte actuellement valide — ex: un budget repassé sous le
+ * seuil ne doit pas laisser son ancienne alerte affichée indéfiniment comme si le
+ * problème persistait encore. S'appuie sur des titres stables (voir generate.ts) pour
+ * reconnaître "la même" alerte d'un recalcul à l'autre.
+ */
+export async function resolveStaleNotifications(userId: string, kind: NotificationKind, stillValidTitles: Set<string>): Promise<void> {
+  const stale = await db.notifications
+    .where('user_id').equals(userId)
+    .filter(n => n.kind === kind && !n.read_at && !n.deleted_at && !stillValidTitles.has(n.title))
+    .toArray();
+  const now = new Date().toISOString();
+  for (const notification of stale) {
+    const updated: DBNotification = { ...notification, read_at: now, updated_at: now, sync_status: 'pending' };
+    await db.notifications.put(updated);
+    await SyncEngine.queueOperation('notifications', notification.id, 'update', updated);
+  }
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {

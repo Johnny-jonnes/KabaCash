@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { formatAmount } from '@/lib/finance/format';
 import type { FinancialIntelligenceReport } from '@/lib/insights/intelligence';
 import type { FinancialForecast } from '@/lib/finance/forecast';
@@ -42,8 +44,11 @@ export function generateRecommendations(params: {
     recs.push({
       id: 'category-reduction',
       tone: 'warning',
-      title: `Vous dépensez ${Math.round(topIncrease.ratio * 100)}% de plus en ${topIncrease.categoryId}`,
-      body: `En réduisant cette catégorie de seulement 15%, vous économiseriez environ ${formatAmount(potentialSavings, currency)} par mois.`,
+      // Titre stable (nom de catégorie seul) : le % fluctue à chaque recalcul, et
+      // upsertNotification dédoublonne par titre — un titre qui varie créait une
+      // nouvelle alerte à chaque petit changement au lieu de mettre à jour l'existante.
+      title: `Hausse de dépenses : ${topIncrease.categoryId}`,
+      body: `Vous dépensez ${Math.round(topIncrease.ratio * 100)}% de plus que d'habitude dans cette catégorie. En la réduisant de 15%, vous économiseriez environ ${formatAmount(potentialSavings, currency)} par mois.`,
     });
   }
 
@@ -53,8 +58,8 @@ export function generateRecommendations(params: {
     recs.push({
       id: 'dominant-category',
       tone: 'info',
-      title: `${dom.categoryId} représente ${dom.percentOfExpenses}% de vos dépenses`,
-      body: `C'est votre poste de dépense le plus important (${formatAmount(dom.totalAmount, currency)} sur 3 mois). Vérifiez qu'il correspond bien à vos priorités.`,
+      title: `Catégorie dominante : ${dom.categoryId}`,
+      body: `Représente ${dom.percentOfExpenses}% de vos dépenses — votre poste le plus important (${formatAmount(dom.totalAmount, currency)} sur 3 mois). Vérifiez qu'il correspond bien à vos priorités.`,
     });
   }
 
@@ -65,8 +70,8 @@ export function generateRecommendations(params: {
     recs.push({
       id: 'recurring-cost',
       tone: 'info',
-      title: `"${topRecurring.label}" revient tous les ${topRecurring.intervalDays} jours`,
-      body: `Environ ${formatAmount(topRecurring.averageAmount, currency)} à chaque fois, soit ${formatAmount(annualCost, currency)} par an.`,
+      title: `Paiement récurrent : "${topRecurring.label}"`,
+      body: `Revient environ tous les ${topRecurring.intervalDays} jours, ${formatAmount(topRecurring.averageAmount, currency)} à chaque fois, soit ${formatAmount(annualCost, currency)} par an.`,
     });
   }
 
@@ -76,7 +81,7 @@ export function generateRecommendations(params: {
       id: 'missing-income',
       tone: 'critical',
       title: 'Revenu récurrent non reçu',
-      body: `"${params.intelligence.missingIncome.label}" attendu vers le ${params.intelligence.missingIncome.nextExpectedDate} n'a pas encore été enregistré.`,
+      body: `"${params.intelligence.missingIncome.label}" attendu vers le ${format(new Date(params.intelligence.missingIncome.nextExpectedDate), 'd MMMM', { locale: fr })} n'a pas encore été enregistré.`,
     });
   }
 
@@ -85,8 +90,8 @@ export function generateRecommendations(params: {
     recs.push({
       id: 'income-down',
       tone: 'warning',
-      title: `Revenus en baisse de ${params.intelligence.incomeChange.percent}%`,
-      body: `Comparé à votre moyenne des 3 derniers mois. Vos dépenses au rythme actuel : ${formatAmount(Math.round(params.forecast.dailyAvgExpense * 30), currency)}/mois.`,
+      title: 'Baisse de revenus',
+      body: `En baisse de ${params.intelligence.incomeChange.percent}% comparé à votre moyenne des 3 derniers mois. Vos dépenses au rythme actuel : ${formatAmount(Math.round(params.forecast.dailyAvgExpense * 30), currency)}/mois.`,
     });
   }
 
@@ -107,8 +112,8 @@ export function generateRecommendations(params: {
     recs.push({
       id: 'duplicates',
       tone: 'warning',
-      title: `${params.intelligence.duplicates.length} transaction(s) potentiellement en double`,
-      body: `Par exemple ${formatAmount(dup.amount, currency)} enregistré ${dup.transactions.length} fois le même jour dans "${dup.categoryId}".`,
+      title: 'Transactions potentiellement en double',
+      body: `${params.intelligence.duplicates.length} groupe(s) détecté(s) — par exemple ${formatAmount(dup.amount, currency)} enregistré ${dup.transactions.length} fois le même jour dans "${dup.categoryId}".`,
     });
   }
 
@@ -119,8 +124,8 @@ export function generateRecommendations(params: {
       recs.push({
         id: 'savings-good',
         tone: 'positive',
-        title: `Vous épargnez ${savingsRate}% de vos revenus`,
-        body: `Bien au-dessus du seuil de 20% généralement recommandé. À ce rythme : ${formatAmount(params.forecast.points.find(p => p.daysAhead === 90)?.projectedSavings || 0, currency)} économisés sur 3 mois.`,
+        title: 'Vous épargnez bien',
+        body: `Vous épargnez ${savingsRate}% de vos revenus — bien au-dessus du seuil de 20% généralement recommandé. À ce rythme : ${formatAmount(params.forecast.points.find(p => p.daysAhead === 90)?.projectedSavings || 0, currency)} économisés sur 3 mois.`,
       });
     }
   }

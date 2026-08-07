@@ -44,13 +44,18 @@ export function generateInsights(params: {
       .filter(t => t.type === 'expense' && !t.deleted_at && t.category_id === budget.category_id)
       .reduce((s, t) => s + t.amount, 0);
     const pct = calculateBudgetPercentage(spent, budget.amount_limit);
+    // Titre stable quel que soit le niveau de gravité (contrairement à avant, qui
+    // variait "bientôt atteint" -> "dépassé") : upsertNotification dédoublonne par
+    // (kind, titre), donc un titre stable fait évoluer LA MÊME alerte quand elle
+    // s'aggrave, au lieu d'empiler deux alertes distinctes pour un seul problème.
+    const title = `Budget "${budget.category_id}"`;
     if (pct >= 100) {
       insights.push({
         id: `budget_risk_${budget.id}`,
         kind: 'budget_risk',
         tone: 'critical',
-        title: `Budget "${budget.category_id}" dépassé`,
-        body: `${formatAmount(spent, budget.currency)} dépensés pour une limite de ${formatAmount(budget.amount_limit, budget.currency)} (${pct}%).`,
+        title,
+        body: `Dépassé : ${formatAmount(spent, budget.currency)} dépensés pour une limite de ${formatAmount(budget.amount_limit, budget.currency)} (${pct}%).`,
         href: '/budgets',
       });
     } else if (pct >= (budget.alert_threshold_percent || 80)) {
@@ -58,7 +63,7 @@ export function generateInsights(params: {
         id: `budget_risk_${budget.id}`,
         kind: 'budget_risk',
         tone: 'warning',
-        title: `Budget "${budget.category_id}" bientôt atteint`,
+        title,
         body: `Déjà ${pct}% utilisé (${formatAmount(spent, budget.currency)} / ${formatAmount(budget.amount_limit, budget.currency)}).`,
         href: '/budgets',
       });
@@ -116,21 +121,45 @@ export function generateInsights(params: {
     }
   }
 
-  // 4. Projection simple de fin de mois (extrapolation linéaire du rythme actuel)
+  // 4. Projection simple de fin de mois (extrapolation linéaire du rythme actuel).
+  // Le revenu n'est JAMAIS extrapolé, seulement comparé à ce qui est déjà reçu : pour
+  // un revenu qui arrive progressivement dans le mois (ventes, prestations — le cas
+  // courant pour un commerce ou une exploitation agricole), extrapoler l'aurait fait
+  // apparaître comme "manquant" avant même d'être arrivé, et déclenché une fausse
+  // alerte de déficit. Un déficit déjà réel (dépenses > revenus reçus à ce jour) reste
+  // affirmé sans réserve ; un déficit seulement projeté est formulé avec la réserve
+  // explicite qu'un revenu restant peut encore arriver.
   if (dayOfMonth >= 3 && currentExpenseToDate > 0) {
     const projectedExpense = Math.round((currentExpenseToDate / dayOfMonth) * daysInMonth);
-    const projectedIncome = incomeOf(monthTransactions); // le revenu n'est pas extrapolé : généralement déjà connu/fixe
-    const projectedSavings = projectedIncome - projectedExpense;
-    if (projectedIncome > 0) {
-      insights.push({
-        id: 'projection_eom',
-        kind: 'projection',
-        tone: projectedSavings >= 0 ? 'positive' : 'critical',
-        title: projectedSavings >= 0 ? 'Bonne trajectoire ce mois-ci' : 'Risque de dépassement en fin de mois',
-        body: projectedSavings >= 0
-          ? `Au rythme actuel, vous économiserez environ ${formatAmount(projectedSavings, 'GNF')} ce mois-ci.`
-          : `Au rythme actuel, vous dépasserez vos revenus d'environ ${formatAmount(Math.abs(projectedSavings), 'GNF')} ce mois-ci.`,
-      });
+    const incomeToDate = incomeOf(monthTransactions);
+    if (incomeToDate > 0) {
+      const currentSavings = incomeToDate - currentExpenseToDate;
+      const projectedSavings = incomeToDate - projectedExpense;
+      if (currentSavings < 0) {
+        insights.push({
+          id: 'projection_eom',
+          kind: 'projection',
+          tone: 'critical',
+          title: 'Dépenses déjà supérieures aux revenus reçus',
+          body: `Ce mois-ci : ${formatAmount(currentExpenseToDate, 'GNF')} dépensés pour ${formatAmount(incomeToDate, 'GNF')} reçus jusqu'à présent (déficit de ${formatAmount(Math.abs(currentSavings), 'GNF')}).`,
+        });
+      } else if (projectedSavings < 0) {
+        insights.push({
+          id: 'projection_eom',
+          kind: 'projection',
+          tone: 'warning',
+          title: 'Rythme de dépense à surveiller',
+          body: `Au rythme actuel, vos dépenses (~${formatAmount(projectedExpense, 'GNF')} en fin de mois) dépasseraient vos revenus déjà reçus (${formatAmount(incomeToDate, 'GNF')}) — sauf si d'autres revenus sont encore attendus.`,
+        });
+      } else {
+        insights.push({
+          id: 'projection_eom',
+          kind: 'projection',
+          tone: 'positive',
+          title: 'Bonne trajectoire ce mois-ci',
+          body: `Au rythme actuel, vous économiserez environ ${formatAmount(projectedSavings, 'GNF')} ce mois-ci (sur la base des revenus déjà reçus).`,
+        });
+      }
     }
   }
 
