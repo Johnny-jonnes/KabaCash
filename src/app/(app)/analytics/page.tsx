@@ -15,6 +15,8 @@ import { CategoryRadar } from '@/components/analytics/CategoryRadar';
 import { ForecastPanel } from '@/components/analytics/ForecastPanel';
 import { resolvePeriod, previousPeriod, isInRange, type PeriodPreset, type DateRange } from '@/lib/analytics/period';
 import { forecastFinances } from '@/lib/finance/forecast';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { PieChart as PieIcon, TrendingUp, Grid3x3, Radar as RadarIcon, Telescope } from 'lucide-react';
 
 type ViewTab = 'distribution' | 'trend' | 'habits' | 'radar' | 'forecast';
@@ -31,6 +33,7 @@ export default function AnalyticsPage() {
   const [preset, setPreset] = useState<PeriodPreset>('30d');
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
   const [activeTab, setActiveTab] = useState<ViewTab>('distribution');
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
 
   const now = new Date();
   const range = useMemo(() => resolvePeriod(preset, now, customRange), [preset, customRange]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -38,11 +41,20 @@ export default function AnalyticsPage() {
 
   const categories = useCategories();
   const accountsRaw = useLiveQuery(() => db.accounts.toArray());
-  const accounts = useMemo(() => (accountsRaw || []).filter(a => !a.deleted_at), [accountsRaw]);
+  // Sans ce filtre, Analytics mélangeait les comptes/transactions de tous les espaces
+  // (et du personnel) quel que soit l'espace sélectionné dans l'en-tête — même bug de
+  // fond que corrigé sur les autres pages (voir dashboard/accounts/transactions).
+  const accounts = useMemo(
+    () => filterBySpace((accountsRaw || []).filter(a => !a.deleted_at), activeSpaceId),
+    [accountsRaw, activeSpaceId]
+  );
 
   const twoYearsAgo = useMemo(() => subYears(now, 2).toISOString().split('T')[0], []); // eslint-disable-line react-hooks/exhaustive-deps
   const transactionsRaw = useLiveQuery(() => db.transactions.where('transaction_date').aboveOrEqual(twoYearsAgo).toArray(), [twoYearsAgo]);
-  const allTransactions = useMemo(() => (transactionsRaw || []).filter(t => !t.deleted_at), [transactionsRaw]);
+  const allTransactions = useMemo(
+    () => filterBySpace((transactionsRaw || []).filter(t => !t.deleted_at), activeSpaceId),
+    [transactionsRaw, activeSpaceId]
+  );
 
   const currentTx = useMemo(() => allTransactions.filter(t => isInRange(t.transaction_date, range)), [allTransactions, range]);
   const prevTx = useMemo(() => allTransactions.filter(t => isInRange(t.transaction_date, prevRange)), [allTransactions, prevRange]);
