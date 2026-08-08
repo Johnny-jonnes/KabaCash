@@ -24,6 +24,19 @@ function toRemotePayload(payload: object): Record<string, unknown> {
 }
 
 export class SyncEngine {
+  // Empêche des passages concurrents de processQueue() : une opération qui pousse
+  // plusieurs entités d'affilée (ex: fusion de compte, "tout marquer comme lu") appelle
+  // queueOperation() en boucle, et chaque appel déclenchait auparavant sa PROPRE passe
+  // de processQueue() non attendue — plusieurs passes tournaient alors en même temps,
+  // chacune lisant/écrivant la même file sans coordination. Un item pouvait ainsi être
+  // traité deux fois ou son statut écrasé par une passe plus ancienne encore en cours,
+  // ce qui pouvait laisser un élément marqué "en erreur" ou "en attente" alors qu'il
+  // avait en réalité bien été envoyé (ou l'inverse). Un seul passage à la fois désormais ;
+  // toute demande arrivée pendant qu'un passage tourne déclenche un second passage propre
+  // juste après, plutôt que de se chevaucher avec le premier.
+  private static runningQueue: Promise<void> | null = null;
+  private static rerunRequested = false;
+
   static async queueOperation(
     entity_type: string,
     entity_id: string,
@@ -43,9 +56,27 @@ export class SyncEngine {
   }
 
   /** @param force Ignore le plafond de tentatives — utilisé par "Synchroniser maintenant". */
-  static async processQueue(force = false) {
+  static async processQueue(force = false): Promise<void> {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
+    if (this.runningQueue) {
+      this.rerunRequested = true;
+      return this.runningQueue;
+    }
+
+    this.runningQueue = this.runQueueOnce(force);
+    try {
+      await this.runningQueue;
+    } finally {
+      this.runningQueue = null;
+      if (this.rerunRequested) {
+        this.rerunRequested = false;
+        await this.processQueue(force);
+      }
+    }
+  }
+
+  private static async runQueueOnce(force: boolean) {
     const pendingItems = await SyncQueue.getPendingItems();
     if (pendingItems.length === 0) return;
 
