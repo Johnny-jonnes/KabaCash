@@ -18,14 +18,16 @@ export function BudgetCard({ categoryName, spent, limit, currency, periodLabel, 
   const percentage = calculateBudgetPercentage(spent, limit);
   const isCritical = percentage >= 95;
   const isWarning = percentage >= 80 && !isCritical;
-  
+  const remaining = Math.max(limit - spent, 0);
+  const remainingTone = isCritical ? 'text-status-critical' : isWarning ? 'text-status-warning' : 'text-foreground';
+
   return (
-    <Card className={`shadow-sm border-border ${isCritical ? 'border-destructive/50 bg-destructive/5' : ''}`}>
+    <Card className={`shadow-sm border-border ${isCritical ? 'border-status-critical/50 bg-status-critical/5' : ''}`}>
       <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-3">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             {categoryName}
-            {isCritical && <AlertCircle className="w-4 h-4 text-destructive" />}
+            {isCritical && <AlertCircle className="w-4 h-4 text-status-critical" />}
           </h3>
           <div className="flex items-center gap-3">
             {periodLabel && (
@@ -33,9 +35,8 @@ export function BudgetCard({ categoryName, spent, limit, currency, periodLabel, 
                 {periodLabel}
               </span>
             )}
-            <span className="text-sm font-medium">{percentage}%</span>
             {onDelete && (
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete();
@@ -47,18 +48,31 @@ export function BudgetCard({ categoryName, spent, limit, currency, periodLabel, 
             )}
           </div>
         </div>
-        
-        <div className="w-full bg-secondary rounded-full h-2.5 mb-3">
-          <div 
-            className={`h-2.5 rounded-full transition-all ${isCritical ? 'bg-destructive' : isWarning ? 'bg-orange-500' : 'bg-primary'}`} 
+
+        {/* Montant restant en décompte : c'est le chiffre qu'on veut voir en premier,
+            pas le % consommé — on part d'un montant connu au départ et on regarde
+            ce qu'il en reste au fur et à mesure que les dépenses se déduisent. */}
+        <div className="flex items-baseline justify-between mb-2">
+          <div>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">Restant</p>
+            <p className={`text-2xl font-bold tabular-nums ${remainingTone}`}>{formatAmount(remaining, currency)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">Départ</p>
+            <p className="text-sm font-semibold tabular-nums text-muted-foreground">{formatAmount(limit, currency)}</p>
+          </div>
+        </div>
+
+        <div className="w-full bg-secondary rounded-full h-2.5 mb-2">
+          <div
+            className={`h-2.5 rounded-full transition-all ${isCritical ? 'bg-status-critical' : isWarning ? 'bg-status-warning' : 'bg-primary'}`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           ></div>
         </div>
-        
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-muted-foreground">Dépensé: <span className="font-medium text-foreground">{formatAmount(spent, currency)}</span></span>
-          <span className="text-muted-foreground">Restant: <span className="font-medium text-foreground">{formatAmount(Math.max(limit - spent, 0), currency)}</span></span>
-        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {formatAmount(spent, currency)} dépensés · {percentage}%
+        </p>
 
         {onPay && (
           <div className="mt-4 flex justify-end">
