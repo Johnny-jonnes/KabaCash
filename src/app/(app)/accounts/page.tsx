@@ -18,6 +18,8 @@ import { logActivity } from '@/lib/db/activity-logger';
 import { useAuthStore } from '@/stores/authStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { filterBySpace } from '@/lib/spaces/filterBySpace';
+import { calculateAccountBalance } from '@/lib/finance/calculations';
+import { startOfMonth } from 'date-fns';
 import type { DBAccount } from '@/types/database';
 
 export default function AccountsPage() {
@@ -33,6 +35,19 @@ export default function AccountsPage() {
   // Cible de fusion : tous les comptes actifs de l'utilisateur, pas seulement ceux de
   // l'espace affiché — l'exemple type est justement "Personnel -> Compte Entreprise".
   const mergeTargets = activeAccounts.filter(a => a.id !== accountToMerge?.id);
+
+  // Solde en début de mois par compte : solde actuel moins l'effet net des
+  // transactions de ce mois (même logique de décompte que les budgets — voir
+  // BudgetCard "Restant / Départ" — appliquée ici à "Solde actuel / Début du mois").
+  const monthStart = startOfMonth(new Date()).toISOString().split('T')[0];
+  const monthTransactions = useLiveQuery(() =>
+    db.transactions.where('transaction_date').aboveOrEqual(monthStart).toArray()
+  ) || [];
+  const monthStartBalanceByAccount = new Map<string, number>();
+  for (const account of accounts) {
+    const netThisMonth = calculateAccountBalance(monthTransactions, account.id);
+    monthStartBalanceByAccount.set(account.id, account.balance - netThisMonth);
+  }
 
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
@@ -76,11 +91,12 @@ export default function AccountsPage() {
     return (
       <div className="space-y-3 mt-4">
         {sectionAccounts.map(account => (
-          <AccountCard 
+          <AccountCard
             key={account.id}
             name={account.name}
             type={account.type}
             balance={account.balance}
+            monthStartBalance={monthStartBalanceByAccount.get(account.id) ?? account.balance}
             currency={account.currency}
             color={account.color}
             operator={account.operator}

@@ -5,8 +5,11 @@ export function calculateAccountBalance(
   transactions: DBTransaction[],
   accountId: string
 ): number {
+  // !t.deleted_at (et non === null) : les transactions créées via createTransaction.ts
+  // n'ont jamais deleted_at explicitement à null, juste absent (undefined) — un
+  // filtre strict sur null les excluait toutes à tort.
   return transactions
-    .filter(t => t.deleted_at === null && t.account_id === accountId)
+    .filter(t => !t.deleted_at && t.account_id === accountId)
     .reduce((balance, t) => {
       if (t.type === 'income') return balance + t.amount;
       if (t.type === 'expense') return balance - t.amount;
@@ -27,7 +30,7 @@ export function calculateBudgetSpent(
 ): number {
   return transactions
     .filter(t =>
-      t.deleted_at === null &&
+      !t.deleted_at &&
       t.category_id === categoryId &&
       t.type === 'expense' &&
       new Date(t.transaction_date) >= startDate &&
