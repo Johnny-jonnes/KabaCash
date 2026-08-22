@@ -13,11 +13,13 @@ import { SpaceForm } from '@/components/spaces/SpaceForm';
 import { JoinSpaceForm } from '@/components/spaces/JoinSpaceForm';
 import { MemberSpendingReport } from '@/components/spaces/MemberSpendingReport';
 import { MergeAccountDialog } from '@/components/accounts/MergeAccountDialog';
+import { MemberPermissionsDialog } from '@/components/spaces/MemberPermissionsDialog';
 import { leaveSpace, removeMember } from '@/lib/spaces/spaceActions';
 import { formatAmount } from '@/lib/finance/format';
-import { Users, Briefcase, Plus, KeyRound, Copy, LogOut, UserMinus, Crown, Wallet, ArrowRightLeft } from 'lucide-react';
+import { resolveSpacePermissions } from '@/lib/spaces/permissions';
+import { Users, Briefcase, Plus, KeyRound, Copy, LogOut, UserMinus, Crown, Wallet, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import type { DBAccount, DBSpace } from '@/types/database';
+import type { DBAccount, DBSpace, DBSpaceMember } from '@/types/database';
 
 export default function SpacesPage() {
   const { user } = useAuthStore();
@@ -26,6 +28,7 @@ export default function SpacesPage() {
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [detailSpace, setDetailSpace] = useState<DBSpace | null>(null);
   const [accountToMerge, setAccountToMerge] = useState<DBAccount | null>(null);
+  const [memberForPermissions, setMemberForPermissions] = useState<DBSpaceMember | null>(null);
 
   const memberships = useLiveQuery(() =>
     db.spaceMembers.where('user_id').equals(user?.id ?? '').filter(m => !m.deleted_at).toArray()
@@ -36,7 +39,9 @@ export default function SpacesPage() {
   const allMembers = useLiveQuery(() =>
     db.spaceMembers.where('space_id').equals(detailSpace?.id ?? '').filter(m => !m.deleted_at).toArray()
   , [detailSpace?.id]) || [];
-  const myRoleInDetail = allMembers.find(m => m.user_id === user?.id)?.role;
+  const myMembershipInDetail = allMembers.find(m => m.user_id === user?.id);
+  const myRoleInDetail = myMembershipInDetail?.role;
+  const myPermissionsInDetail = resolveSpacePermissions(myMembershipInDetail);
 
   const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
   const spaceAccounts = allAccounts.filter(a => a.space_id === detailSpace?.id && !a.deleted_at);
@@ -145,16 +150,22 @@ export default function SpacesPage() {
           <DrawerHeader><DrawerTitle>{detailSpace?.name}</DrawerTitle></DrawerHeader>
           {detailSpace && (
             <div className="p-4 pb-6 space-y-4">
-              <div className="bg-muted rounded-xl p-4 text-center space-y-2">
-                <p className="text-xs text-muted-foreground">Code d&apos;invitation</p>
-                <p className="text-2xl font-mono font-bold tracking-[0.3em]">{detailSpace.invite_code}</p>
-                <button
-                  onClick={() => copyCode(detailSpace.invite_code)}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                >
-                  <Copy className="w-3.5 h-3.5" /> Copier et partager
-                </button>
-              </div>
+              {myPermissionsInDetail.canInviteMembers ? (
+                <div className="bg-muted rounded-xl p-4 text-center space-y-2">
+                  <p className="text-xs text-muted-foreground">Code d&apos;invitation</p>
+                  <p className="text-2xl font-mono font-bold tracking-[0.3em]">{detailSpace.invite_code}</p>
+                  <button
+                    onClick={() => copyCode(detailSpace.invite_code)}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                  >
+                    <Copy className="w-3.5 h-3.5" /> Copier et partager
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-muted/50 rounded-xl p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Vous n&apos;avez pas la permission de voir le code d&apos;invitation de cet espace.</p>
+                </div>
+              )}
 
               {spaceAccounts.length > 0 && (
                 <div>
@@ -197,9 +208,14 @@ export default function SpacesPage() {
                         {member.user_id === user?.id && <span className="text-[10px] text-muted-foreground shrink-0">(vous)</span>}
                       </div>
                       {myRoleInDetail === 'chef' && member.user_id !== user?.id && (
-                        <button onClick={() => handleRemoveMember(member.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
-                          <UserMinus className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => setMemberForPermissions(member)} title="Régler les permissions" className="p-1.5 text-muted-foreground hover:text-primary transition-colors">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleRemoveMember(member.id)} title="Retirer ce membre" className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+                            <UserMinus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -231,6 +247,13 @@ export default function SpacesPage() {
         onOpenChange={(open) => !open && setAccountToMerge(null)}
         sourceAccount={accountToMerge}
         targetOptions={mergeTargets}
+      />
+
+      <MemberPermissionsDialog
+        key={memberForPermissions?.id ?? 'none-perms'}
+        open={!!memberForPermissions}
+        onOpenChange={(open) => !open && setMemberForPermissions(null)}
+        member={memberForPermissions}
       />
     </>
   );

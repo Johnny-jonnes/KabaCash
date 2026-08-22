@@ -8,6 +8,8 @@ import { useSpaceStore } from '@/stores/spaceStore';
 import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { useCategories } from '@/hooks/useCategories';
 import { createTransaction, InsufficientFundsError } from '@/lib/transactions/createTransaction';
+import { useSpacePermissions } from '@/hooks/useSpacePermissions';
+import { checkTransactionAllowed } from '@/lib/spaces/permissions';
 import { getRecentAmounts, sortAccountsByRecency, sortCategoriesByUsage } from '@/lib/insights/suggestions';
 import { formatAmount } from '@/lib/finance/format';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
@@ -30,6 +32,7 @@ const TYPE_META: Record<TransactionType, { label: string; icon: typeof ArrowUpRi
 export function QuickAddFab() {
   const { user } = useAuthStore();
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const permissions = useSpacePermissions();
   const [step, setStep] = useState<Step>('closed');
   const [type, setType] = useState<TransactionType>('expense');
   const [digits, setDigits] = useState('');
@@ -86,6 +89,16 @@ export function QuickAddFab() {
 
   const submit = async (finalAccountId: string, transferToId?: string) => {
     if (!user) return;
+
+    if (activeSpaceId) {
+      const check = checkTransactionAllowed(permissions, { amount, categoryId: categoryId || '', type });
+      if (!check.allowed) {
+        toast.error(check.reason || "Cette opération n'est pas autorisée dans cet espace.");
+        close();
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       await createTransaction({

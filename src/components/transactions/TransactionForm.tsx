@@ -18,6 +18,8 @@ import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createTransaction, updateTransaction, InsufficientFundsError } from '@/lib/transactions/createTransaction';
 import { resolveOrCreateCategory } from '@/lib/categories/resolveOrCreateCategory';
+import { useSpacePermissions } from '@/hooks/useSpacePermissions';
+import { checkTransactionAllowed } from '@/lib/spaces/permissions';
 import type { DBTransaction } from '@/types/database';
 
 interface TransactionFormProps {
@@ -42,6 +44,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const { user } = useAuthStore();
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const permissions = useSpacePermissions();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState('');
   const isEditing = !!editingTransaction;
@@ -104,6 +107,15 @@ export function TransactionForm({
     if (isAutresSelected && !customCategoryName.trim()) {
       toast.error('Veuillez saisir le nom de la catégorie');
       return;
+    }
+
+    if (activeSpaceId) {
+      const categoryForCheck = isAutresSelected && customCategoryName.trim() ? customCategoryName.trim() : data.category_id;
+      const check = checkTransactionAllowed(permissions, { amount: data.amount, categoryId: categoryForCheck || '', type: data.type });
+      if (!check.allowed) {
+        toast.error(check.reason || "Cette opération n'est pas autorisée dans cet espace.");
+        return;
+      }
     }
 
     setIsSubmitting(true);

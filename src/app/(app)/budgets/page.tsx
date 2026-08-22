@@ -23,6 +23,7 @@ import { logActivity } from '@/lib/db/activity-logger';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { filterBySpace } from '@/lib/spaces/filterBySpace';
 import { useAuthStore } from '@/stores/authStore';
+import { useSpacePermissions } from '@/hooks/useSpacePermissions';
 
 // Labels lisibles pour les périodes personnalisées
 const UNIT_LABELS_SHORT: Record<string, string> = {
@@ -49,6 +50,7 @@ function formatPeriodLabel(budget: DBBudget): string {
 export default function BudgetsPage() {
   const { user } = useAuthStore();
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const permissions = useSpacePermissions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [payBudget, setPayBudget] = useState<{ categoryId: string, limit: number } | null>(null);
   const [budgetToDelete, setBudgetToDelete] = useState<DBBudget | null>(null);
@@ -151,7 +153,7 @@ export default function BudgetsPage() {
               currency={budget.currency}
               periodLabel={formatPeriodLabel(budget)}
               onPay={() => setPayBudget({ categoryId: budget.category_id, limit: budget.amount_limit })}
-              onDelete={() => setBudgetToDelete(budget)}
+              onDelete={permissions.canManageBudgets ? () => setBudgetToDelete(budget) : undefined}
             />
           );
         })}
@@ -166,6 +168,7 @@ export default function BudgetsPage() {
         
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold tracking-tight">Vue d&apos;ensemble</h2>
+          {permissions.canManageBudgets && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="gap-1">
@@ -183,6 +186,7 @@ export default function BudgetsPage() {
               }} />
             </DialogContent>
           </Dialog>
+          )}
         </div>
 
         <Dialog open={!!payBudget} onOpenChange={(open) => !open && setPayBudget(null)}>

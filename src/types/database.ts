@@ -24,6 +24,15 @@ export interface DBSpaceMember {
   role: SpaceRole;
   full_name: string; // dénormalisé : lisible hors-ligne sans jointure sur user_profiles
   joined_at: string;
+  // Permissions réelles par membre (le chef a toujours tous les droits, ces colonnes
+  // ne s'appliquent qu'aux membres — voir lib/spaces/permissions.ts). Appliquées à la
+  // fois côté client (offline-first) et côté RLS (migration 00009) : pas seulement théoriques.
+  can_add_transaction?: boolean | null;
+  can_manage_budgets?: boolean | null;
+  can_invite_members?: boolean | null;
+  can_view_all_accounts?: boolean | null;
+  spending_limit_per_txn?: number | null;
+  forbidden_categories?: string[] | null;
   sync_status: SyncStatus;
   created_at: string;
   updated_at: string;

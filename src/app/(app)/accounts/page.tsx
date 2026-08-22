@@ -19,6 +19,8 @@ import { logActivity } from '@/lib/db/activity-logger';
 import { useAuthStore } from '@/stores/authStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { filterBySpace } from '@/lib/spaces/filterBySpace';
+import { useSpacePermissions } from '@/hooks/useSpacePermissions';
+import { filterVisibleAccounts } from '@/lib/spaces/permissions';
 import { calculateAccountBalance } from '@/lib/finance/calculations';
 import { startOfMonth } from 'date-fns';
 import type { DBAccount } from '@/types/database';
@@ -26,6 +28,7 @@ import type { DBAccount } from '@/types/database';
 export default function AccountsPage() {
   const { user } = useAuthStore();
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const permissions = useSpacePermissions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<DBAccount | null>(null);
   const [accountToMerge, setAccountToMerge] = useState<DBAccount | null>(null);
@@ -33,7 +36,9 @@ export default function AccountsPage() {
 
   const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
   const activeAccounts = allAccounts.filter(a => !a.deleted_at);
-  const accounts = filterBySpace(activeAccounts, activeSpaceId);
+  // Si le droit "voir tous les comptes" est désactivé pour ce membre dans cet espace,
+  // il ne voit plus que les comptes qu'il a lui-même créés — voir permissions.ts.
+  const accounts = filterVisibleAccounts(filterBySpace(activeAccounts, activeSpaceId), permissions, user?.id ?? '');
   // Cible de fusion : tous les comptes actifs de l'utilisateur, pas seulement ceux de
   // l'espace affiché — l'exemple type est justement "Personnel -> Compte Entreprise".
   const mergeTargets = activeAccounts.filter(a => a.id !== accountToMerge?.id);

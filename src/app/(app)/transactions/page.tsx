@@ -12,7 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSpaceStore } from '@/stores/spaceStore';
+import { useAuthStore } from '@/stores/authStore';
 import { filterBySpace } from '@/lib/spaces/filterBySpace';
+import { useSpacePermissions } from '@/hooks/useSpacePermissions';
+import { filterVisibleAccounts, filterByVisibleAccountIds } from '@/lib/spaces/permissions';
 import { useCategories } from '@/hooks/useCategories';
 
 type SortOption = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
@@ -26,7 +29,9 @@ const SORT_LABELS: Record<SortOption, string> = {
 };
 
 export default function TransactionsPage() {
+  const { user } = useAuthStore();
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const permissions = useSpacePermissions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
@@ -42,16 +47,24 @@ export default function TransactionsPage() {
     db.transactions.orderBy('created_at').reverse().limit(100).toArray()
   );
   const accountsRaw = useLiveQuery(() => db.accounts.toArray());
+  // Si le droit "voir tous les comptes" est désactivé pour ce membre dans cet espace,
+  // il ne voit que ses propres comptes — et la liste de transactions ci-dessous ne
+  // doit reprendre que celles de ces comptes visibles, pour rester cohérente.
   const accounts = useMemo(
-    () => filterBySpace((accountsRaw || []).filter(a => !a.deleted_at), activeSpaceId),
-    [accountsRaw, activeSpaceId]
+    () => filterVisibleAccounts(filterBySpace((accountsRaw || []).filter(a => !a.deleted_at), activeSpaceId), permissions, user?.id ?? ''),
+    [accountsRaw, activeSpaceId, permissions, user?.id]
   );
+  const visibleAccountIds = useMemo(() => new Set(accounts.map(a => a.id)), [accounts]);
   const categories = useCategories();
 
   const transactions = useMemo(() => {
-    let result = filterBySpace(
-      (allTransactionsRaw || []).filter(t => !t.deleted_at && (filterType === 'all' ? true : t.type === filterType)),
-      activeSpaceId
+    let result = filterByVisibleAccountIds(
+      filterBySpace(
+        (allTransactionsRaw || []).filter(t => !t.deleted_at && (filterType === 'all' ? true : t.type === filterType)),
+        activeSpaceId
+      ),
+      visibleAccountIds,
+      permissions
     );
     if (categoryFilter !== ALL) result = result.filter(t => t.category_id === categoryFilter);
     if (accountFilter !== ALL) result = result.filter(t => t.account_id === accountFilter || t.transfer_to_account_id === accountFilter);
@@ -64,7 +77,7 @@ export default function TransactionsPage() {
     else if (sortBy === 'amount_desc') sorted.sort((a, b) => b.amount - a.amount);
     else sorted.sort((a, b) => a.amount - b.amount);
     return sorted;
-  }, [allTransactionsRaw, activeSpaceId, filterType, categoryFilter, accountFilter, dateFrom, dateTo, sortBy]);
+  }, [allTransactionsRaw, activeSpaceId, filterType, categoryFilter, accountFilter, dateFrom, dateTo, sortBy, visibleAccountIds, permissions]);
 
   const activeFilterCount = [categoryFilter !== ALL, accountFilter !== ALL, !!dateFrom, !!dateTo].filter(Boolean).length;
   const resetFilters = () => { setCategoryFilter(ALL); setAccountFilter(ALL); setDateFrom(''); setDateTo(''); setSortBy('date_desc'); };

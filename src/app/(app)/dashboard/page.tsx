@@ -7,6 +7,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUIStore, getEffectiveDashboardOrder } from '@/stores/uiStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { filterBySpace } from '@/lib/spaces/filterBySpace';
+import { useSpacePermissions } from '@/hooks/useSpacePermissions';
+import { filterVisibleAccounts, filterByVisibleAccountIds } from '@/lib/spaces/permissions';
 import { useCategories } from '@/hooks/useCategories';
 import { Header } from '@/components/layout/Header';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
@@ -37,10 +39,19 @@ function getGreeting(): string {
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const permissions = useSpacePermissions();
   const { dashboardCardOrder, setDashboardCardOrder } = useUIStore();
   const [editMode, setEditMode] = useState(false);
 
   const accountsRaw = useLiveQuery(() => db.accounts.toArray());
+  // Si le droit "voir tous les comptes" est désactivé pour ce membre dans cet espace,
+  // il ne voit que ses propres comptes — et les totaux/listes ci-dessous ne doivent
+  // reprendre que les transactions de ces comptes visibles, pour rester cohérents.
+  const activeAccounts = useMemo(
+    () => filterVisibleAccounts(filterBySpace((accountsRaw || []).filter(a => !a.deleted_at), activeSpaceId), permissions, user?.id ?? ''),
+    [accountsRaw, activeSpaceId, permissions, user?.id]
+  );
+  const visibleAccountIds = useMemo(() => new Set(activeAccounts.map(a => a.id)), [activeAccounts]);
   const budgetsRaw = useLiveQuery(() => db.budgets.toArray());
   const budgets = useMemo(() => filterBySpace(budgetsRaw || [], activeSpaceId), [budgetsRaw, activeSpaceId]);
   const recurringTransactions = useLiveQuery(() => db.recurringTransactions.toArray()) || [];
@@ -54,27 +65,35 @@ export default function DashboardPage() {
   const monthTransactionsRaw = useLiveQuery(() =>
     db.transactions.where('transaction_date').aboveOrEqual(monthStart).toArray()
   );
-  const monthTransactions = useMemo(() => filterBySpace(monthTransactionsRaw || [], activeSpaceId), [monthTransactionsRaw, activeSpaceId]);
+  const monthTransactions = useMemo(
+    () => filterByVisibleAccountIds(filterBySpace(monthTransactionsRaw || [], activeSpaceId), visibleAccountIds, permissions),
+    [monthTransactionsRaw, activeSpaceId, visibleAccountIds, permissions]
+  );
 
   const prevMonthTransactionsRaw = useLiveQuery(() =>
     db.transactions.where('transaction_date').between(prevMonthStart, monthStart, true, false).toArray()
   );
-  const prevMonthTransactions = useMemo(() => filterBySpace(prevMonthTransactionsRaw || [], activeSpaceId), [prevMonthTransactionsRaw, activeSpaceId]);
+  const prevMonthTransactions = useMemo(
+    () => filterByVisibleAccountIds(filterBySpace(prevMonthTransactionsRaw || [], activeSpaceId), visibleAccountIds, permissions),
+    [prevMonthTransactionsRaw, activeSpaceId, visibleAccountIds, permissions]
+  );
 
   const threeMonthsTransactionsRaw = useLiveQuery(() =>
     db.transactions.where('transaction_date').aboveOrEqual(threeMonthsStart).toArray()
   );
-  const threeMonthsTransactions = useMemo(() => filterBySpace(threeMonthsTransactionsRaw || [], activeSpaceId), [threeMonthsTransactionsRaw, activeSpaceId]);
+  const threeMonthsTransactions = useMemo(
+    () => filterByVisibleAccountIds(filterBySpace(threeMonthsTransactionsRaw || [], activeSpaceId), visibleAccountIds, permissions),
+    [threeMonthsTransactionsRaw, activeSpaceId, visibleAccountIds, permissions]
+  );
 
   const recentTransactionsRaw = useLiveQuery(() =>
     db.transactions.orderBy('created_at').reverse().limit(10).toArray()
   );
   const recentTransactions = useMemo(
-    () => filterBySpace((recentTransactionsRaw || []).filter(t => !t.deleted_at), activeSpaceId).slice(0, 5),
-    [recentTransactionsRaw, activeSpaceId]
+    () => filterByVisibleAccountIds(filterBySpace((recentTransactionsRaw || []).filter(t => !t.deleted_at), activeSpaceId), visibleAccountIds, permissions).slice(0, 5),
+    [recentTransactionsRaw, activeSpaceId, visibleAccountIds, permissions]
   );
 
-  const activeAccounts = useMemo(() => filterBySpace((accountsRaw || []).filter(a => !a.deleted_at), activeSpaceId), [accountsRaw, activeSpaceId]);
   const totalBalance = activeAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
   const totalIncome = monthTransactions.filter(t => t.type === 'income' && !t.deleted_at).reduce((s, t) => s + t.amount, 0);
