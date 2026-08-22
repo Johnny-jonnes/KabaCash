@@ -25,7 +25,7 @@ export function PlannedEntryForm({ onSuccess, editingEntry }: { onSuccess?: () =
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = !!editingEntry;
 
-  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccounts = (useLiveQuery(() => db.accounts.toArray()) || []).filter(a => !a.deleted_at);
   const accounts = filterBySpace(allAccounts, activeSpaceId);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<PlannedEntryFormData>({

@@ -28,7 +28,7 @@ export function GoalForm({ onSuccess, editingGoal }: { onSuccess?: () => void; e
   const isEditing = !!editingGoal;
   const allAccountsRaw = useLiveQuery(() => db.accounts.toArray());
   const accounts = useMemo(() => {
-    const allAccounts = allAccountsRaw || [];
+    const allAccounts = (allAccountsRaw || []).filter(a => !a.deleted_at);
     const filtered = filterBySpace(allAccounts, activeSpaceId);
     if (editingGoal?.account_id && !filtered.some(a => a.id === editingGoal.account_id)) {
       const current = allAccounts.find(a => a.id === editingGoal.account_id);

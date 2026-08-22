@@ -51,7 +51,9 @@ export function TransactionForm({
   // corrigé. En édition, le compte déjà assigné reste proposé même s'il appartient à
   // un autre espace, pour ne jamais faire disparaître la valeur actuelle du select.
   const accounts = useMemo(() => {
-    const allAccounts = allAccountsRaw || [];
+    // !deleted_at : un compte fermé (ex: après une fusion) ne doit plus jamais être
+    // proposable pour une nouvelle transaction, même s'il l'était encore en édition.
+    const allAccounts = (allAccountsRaw || []).filter(a => !a.deleted_at);
     const filtered = filterBySpace(allAccounts, activeSpaceId);
     if (editingTransaction && !filtered.some(a => a.id === editingTransaction.account_id)) {
       const current = allAccounts.find(a => a.id === editingTransaction.account_id);

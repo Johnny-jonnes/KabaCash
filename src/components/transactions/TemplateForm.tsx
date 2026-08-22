@@ -19,7 +19,7 @@ import type { TransactionType } from '@/types/enums';
 export function TemplateForm({ onSuccess }: { onSuccess?: () => void }) {
   const { user } = useAuthStore();
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
-  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccounts = (useLiveQuery(() => db.accounts.toArray()) || []).filter(a => !a.deleted_at);
   const accounts = filterBySpace(allAccounts, activeSpaceId);
   const [type, setType] = useState<TransactionType>('expense');
   const [accountId, setAccountId] = useState('');

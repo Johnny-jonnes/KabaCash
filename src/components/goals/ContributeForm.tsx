@@ -17,7 +17,7 @@ import type { DBSavingsGoal } from '@/types/database';
 
 export function ContributeForm({ goal, onSuccess }: { goal: DBSavingsGoal; onSuccess?: () => void }) {
   const { user } = useAuthStore();
-  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccounts = (useLiveQuery(() => db.accounts.toArray()) || []).filter(a => !a.deleted_at);
   // Comptes de l'espace de CET objectif (pas nécessairement l'espace actif du switcher) :
   // on veut contribuer avec un compte cohérent avec l'objectif, pas avec la vue courante.
   const accounts = filterBySpace(allAccounts, goal.space_id ?? null);

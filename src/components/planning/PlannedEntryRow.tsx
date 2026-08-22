@@ -24,7 +24,7 @@ export function PlannedEntryRow({ entry }: { entry: DBPlannedEntry }) {
   const { user } = useAuthStore();
   const categories = useCategories(entry.type);
   const categoryDef = categories.find(c => c.name === entry.category_id);
-  const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
+  const allAccounts = (useLiveQuery(() => db.accounts.toArray()) || []).filter(a => !a.deleted_at);
   // Comptes de l'espace de CETTE prévision (pas l'espace actif du switcher) : cohérent
   // avec le contexte dans lequel la prévision a été planifiée.
   const accounts = filterBySpace(allAccounts, entry.space_id ?? null);

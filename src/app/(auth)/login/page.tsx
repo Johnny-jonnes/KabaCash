@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
@@ -110,13 +111,12 @@ export default function LoginPage() {
                 Oublié ?
               </button>
             </div>
-            <Input 
-              id="password" 
-              type="password" 
-              placeholder="••••••••" 
+            <PasswordInput
+              id="password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required 
+              required
               autoComplete="current-password"
             />
           </div>
