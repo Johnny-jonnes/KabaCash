@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, AlertCircle, Info, TrendingUp, Trash2, Wallet, PiggyBank, Sparkles, Trophy } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Info, TrendingUp, Trash2, Wallet, PiggyBank, Sparkles, Trophy, CalendarClock } from 'lucide-react';
 import { useItemGestures } from '@/hooks/useItemGestures';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -22,6 +22,7 @@ const KIND_ICON: Record<NotificationKind, typeof Info> = {
   anomaly: AlertCircle,
   new_saving: PiggyBank,
   goal_reached: Trophy,
+  account_digest: CalendarClock,
 };
 
 export function NotificationRow({ notification, onOpen, onDismiss }: {

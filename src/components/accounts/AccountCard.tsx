@@ -1,5 +1,5 @@
 import { formatAmount } from '@/lib/finance/format';
-import { Wallet, Smartphone, Landmark, Briefcase, Trash2, ArrowRightLeft, ArrowUp, ArrowDown } from 'lucide-react';
+import { Wallet, Smartphone, Landmark, Briefcase, Trash2, ArrowRightLeft, ArrowUp, ArrowDown, BellRing } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AccountType } from '@/types/enums';
 
@@ -18,6 +18,7 @@ interface AccountCardProps {
   bank_name?: string;
   onDelete?: () => void;
   onMerge?: () => void;
+  onAlertSettings?: () => void;
 }
 
 const TYPE_ICONS = {
@@ -34,7 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   business: 'Compte Pro',
 };
 
-export function AccountCard({ name, type, balance, monthStartBalance, currency, color, operator, phone_number, bank_name, onDelete, onMerge }: AccountCardProps) {
+export function AccountCard({ name, type, balance, monthStartBalance, currency, color, operator, phone_number, bank_name, onDelete, onMerge, onAlertSettings }: AccountCardProps) {
   const Icon = TYPE_ICONS[type] || Wallet;
   const accentColor = color || '#3B82F6';
   const hasMonthRef = monthStartBalance !== undefined && monthStartBalance !== balance;
@@ -67,6 +68,15 @@ export function AccountCard({ name, type, balance, monthStartBalance, currency, 
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              {onAlertSettings && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); onAlertSettings(); }}
+                  title="Régler les alertes de ce compte"
+                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                >
+                  <BellRing className="w-4 h-4" />
+                </button>
+              )}
               {onMerge && (
                 <button
                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMerge(); }}

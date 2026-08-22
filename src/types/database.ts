@@ -78,6 +78,8 @@ export interface DBAccount {
   bank_name?: string;      // Bank : nom de la banque
   account_number?: string; // Bank : 4 derniers chiffres
   description?: string;    // Note libre
+  low_balance_threshold?: number | null;  // Alerte perso : solde en dessous duquel prévenir (remplace l'heuristique par défaut)
+  large_txn_threshold?: number | null;    // Alerte perso : montant à partir duquel une transaction est signalée
   sort_order: number;
   sync_status: SyncStatus;
   created_at: string;

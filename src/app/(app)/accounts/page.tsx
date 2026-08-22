@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import { AccountForm } from '@/components/accounts/AccountForm';
 import { MergeAccountDialog } from '@/components/accounts/MergeAccountDialog';
+import { AccountAlertSettingsDialog } from '@/components/accounts/AccountAlertSettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from 'lucide-react';
@@ -28,6 +29,7 @@ export default function AccountsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<DBAccount | null>(null);
   const [accountToMerge, setAccountToMerge] = useState<DBAccount | null>(null);
+  const [accountForAlerts, setAccountForAlerts] = useState<DBAccount | null>(null);
 
   const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
   const activeAccounts = allAccounts.filter(a => !a.deleted_at);
@@ -104,6 +106,7 @@ export default function AccountsPage() {
             bank_name={account.bank_name}
             onDelete={() => setAccountToDelete(account)}
             onMerge={() => setAccountToMerge(account)}
+            onAlertSettings={() => setAccountForAlerts(account)}
           />
         ))}
       </div>
@@ -193,6 +196,13 @@ export default function AccountsPage() {
         onOpenChange={(open) => !open && setAccountToMerge(null)}
         sourceAccount={accountToMerge}
         targetOptions={mergeTargets}
+      />
+
+      <AccountAlertSettingsDialog
+        key={accountForAlerts?.id ?? 'none-alerts'}
+        open={!!accountForAlerts}
+        onOpenChange={(open) => !open && setAccountForAlerts(null)}
+        account={accountForAlerts}
       />
     </>
   );

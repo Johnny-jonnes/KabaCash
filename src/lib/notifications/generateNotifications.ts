@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/dexie';
-import { subMonths, startOfMonth } from 'date-fns';
+import { subMonths, subWeeks, startOfWeek, startOfMonth } from 'date-fns';
 import { calculateFinancialScore } from '@/lib/finance/score';
 import { forecastFinances } from '@/lib/finance/forecast';
 import { analyzeFinances } from '@/lib/insights/intelligence';
@@ -15,6 +15,8 @@ const INSIGHT_KIND_MAP: Record<Insight['kind'], NotificationKind> = {
   projection: 'forecast',
   savings_good: 'new_saving',
   account_low: 'account_alert',
+  large_txn: 'account_alert',
+  account_digest: 'account_digest',
 };
 
 const RECOMMENDATION_KIND_MAP: Record<string, NotificationKind> = {
@@ -54,11 +56,16 @@ export async function generateNotifications(userId: string): Promise<void> {
   const prevMonthTransactions = allTransactions.filter(t => t.transaction_date >= prevMonthStart && t.transaction_date < monthStart);
   const threeMonthsTransactions = allTransactions.filter(t => t.transaction_date >= threeMonthsStart);
 
+  // Semaine précédente complète (lundi à dimanche) pour le résumé hebdomadaire par compte.
+  const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 }).toISOString().split('T')[0];
+  const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 }).toISOString().split('T')[0];
+  const lastWeekTransactions = allTransactions.filter(t => t.transaction_date >= lastWeekStart && t.transaction_date < currentWeekStart);
+
   const score = calculateFinancialScore({ accounts: activeAccounts, transactions: threeMonthsTransactions, budgets: activeBudgets, recurringTransactions: [], now });
   const forecast = forecastFinances({ accounts: activeAccounts, transactions: allTransactions, now });
   const intelligence = analyzeFinances({ accounts: activeAccounts, allTransactions, now });
 
-  const insights = generateInsights({ accounts: activeAccounts, monthTransactions, prevMonthTransactions, threeMonthsTransactions, budgets: activeBudgets, now });
+  const insights = generateInsights({ accounts: activeAccounts, monthTransactions, prevMonthTransactions, threeMonthsTransactions, lastWeekTransactions, budgets: activeBudgets, now });
 
   const byCategoryCurrent = new Map<string, number>();
   const byCategoryAvg = new Map<string, number>();

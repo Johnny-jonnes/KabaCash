@@ -1,10 +1,11 @@
-import { getDate, getDaysInMonth } from 'date-fns';
+import { getDate, getDaysInMonth, startOfWeek, endOfWeek, subWeeks, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { DBAccount, DBBudget, DBTransaction } from '@/types/database';
 import { calculateBudgetPercentage } from '@/lib/finance/calculations';
 import { formatAmount } from '@/lib/finance/format';
 
 export type InsightTone = 'positive' | 'info' | 'warning' | 'critical';
-export type InsightKind = 'budget_risk' | 'category_spike' | 'pace' | 'projection' | 'savings_good' | 'account_low';
+export type InsightKind = 'budget_risk' | 'category_spike' | 'pace' | 'projection' | 'savings_good' | 'account_low' | 'large_txn' | 'account_digest';
 
 export interface Insight {
   id: string;
@@ -28,10 +29,11 @@ export function generateInsights(params: {
   monthTransactions: DBTransaction[];
   prevMonthTransactions: DBTransaction[];
   threeMonthsTransactions: DBTransaction[]; // pour la moyenne par catégorie
+  lastWeekTransactions?: DBTransaction[]; // pour le résumé hebdomadaire par compte
   budgets: DBBudget[];
   now?: Date;
 }): Insight[] {
-  const { accounts, monthTransactions, prevMonthTransactions, threeMonthsTransactions, budgets } = params;
+  const { accounts, monthTransactions, prevMonthTransactions, threeMonthsTransactions, lastWeekTransactions, budgets } = params;
   const now = params.now ?? new Date();
   const insights: Insight[] = [];
 
@@ -163,9 +165,29 @@ export function generateInsights(params: {
     }
   }
 
-  // 5. Compte presque vide (solde bas comparé à sa dépense mensuelle moyenne)
+  // 5. Compte presque vide — seuil personnalisé par compte si défini (voir
+  // AccountAlertSettingsDialog), sinon heuristique par défaut (10% de la dépense
+  // mensuelle moyenne sur ce compte).
+  let heuristicLowBalanceUsed = false;
   for (const account of accounts) {
-    if (account.deleted_at || account.balance <= 0) continue;
+    if (account.deleted_at || account.balance < 0) continue;
+    const hasCustomThreshold = account.low_balance_threshold != null && account.low_balance_threshold > 0;
+
+    if (hasCustomThreshold) {
+      if (account.balance < (account.low_balance_threshold as number)) {
+        insights.push({
+          id: `account_low_${account.id}`,
+          kind: 'account_low',
+          tone: 'warning',
+          title: `Compte "${account.name}" sous le seuil défini`,
+          body: `Solde actuel : ${formatAmount(account.balance, account.currency)}, sous le seuil d'alerte de ${formatAmount(account.low_balance_threshold as number, account.currency)} que vous avez défini pour ce compte.`,
+          href: '/accounts',
+        });
+      }
+      continue;
+    }
+
+    if (heuristicLowBalanceUsed || account.balance <= 0) continue;
     const avgMonthlyOutflow = expenseOf(threeMonthsTransactions.filter(t => t.account_id === account.id)) / 3;
     if (avgMonthlyOutflow > 0 && account.balance < avgMonthlyOutflow * 0.1) {
       insights.push({
@@ -176,7 +198,54 @@ export function generateInsights(params: {
         body: `Solde actuel : ${formatAmount(account.balance, account.currency)}, bien en dessous de votre dépense mensuelle habituelle sur ce compte.`,
         href: '/accounts',
       });
-      break; // un seul suffit pour ne pas noyer le dashboard
+      heuristicLowBalanceUsed = true; // un seul suffit pour ne pas noyer le dashboard
+    }
+  }
+
+  // 6. Grosse transaction — uniquement sur les comptes ayant un seuil personnalisé.
+  const accountsByIdForLargeTxn = new Map(accounts.filter(a => a.large_txn_threshold != null && (a.large_txn_threshold as number) > 0).map(a => [a.id, a]));
+  if (accountsByIdForLargeTxn.size > 0) {
+    for (const t of monthTransactions) {
+      if (t.deleted_at || t.type === 'transfer') continue;
+      const account = accountsByIdForLargeTxn.get(t.account_id);
+      if (!account) continue;
+      const threshold = account.large_txn_threshold as number;
+      if (t.amount >= threshold) {
+        insights.push({
+          id: `large_txn_${t.id}`,
+          kind: 'large_txn',
+          tone: 'info',
+          title: `Grosse transaction sur "${account.name}"`,
+          body: `${t.type === 'income' ? 'Entrée' : 'Sortie'} de ${formatAmount(t.amount, account.currency)}${t.description ? ` (${t.description})` : ''}, au-dessus du seuil de ${formatAmount(threshold, account.currency)} défini pour ce compte.`,
+          href: '/transactions',
+        });
+      }
+    }
+  }
+
+  // 7. Résumé hebdomadaire par compte — sur la semaine précédente complète (lundi à
+  // dimanche), pour rester stable toute la semaine (voir dédoublonnage par titre dans
+  // notificationActions.ts) et ne changer qu'au passage à la semaine suivante.
+  if (lastWeekTransactions && lastWeekTransactions.length > 0) {
+    const weekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+    const weekLabel = `${format(weekStart, 'd MMM', { locale: fr })} au ${format(weekEnd, 'd MMM', { locale: fr })}`;
+
+    for (const account of accounts) {
+      if (account.deleted_at) continue;
+      const accountTxs = lastWeekTransactions.filter(t => t.account_id === account.id && !t.deleted_at && t.type !== 'transfer');
+      if (accountTxs.length === 0) continue;
+      const income = incomeOf(accountTxs);
+      const expense = expenseOf(accountTxs);
+      const net = income - expense;
+      insights.push({
+        id: `account_digest_${account.id}`,
+        kind: 'account_digest',
+        tone: 'info',
+        title: `Résumé de la semaine — "${account.name}"`,
+        body: `Semaine du ${weekLabel} : ${formatAmount(income, account.currency)} reçus, ${formatAmount(expense, account.currency)} dépensés (${net >= 0 ? '+' : ''}${formatAmount(net, account.currency)} net), solde actuel ${formatAmount(account.balance, account.currency)}.`,
+        href: '/accounts',
+      });
     }
   }
 
