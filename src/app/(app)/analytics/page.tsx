@@ -17,7 +17,8 @@ import { resolvePeriod, previousPeriod, isInRange, type PeriodPreset, type DateR
 import { forecastFinances } from '@/lib/finance/forecast';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { filterBySpace } from '@/lib/spaces/filterBySpace';
-import { PieChart as PieIcon, TrendingUp, Grid3x3, Radar as RadarIcon, Telescope } from 'lucide-react';
+import { PieChart as PieIcon, TrendingUp, Grid3x3, Radar as RadarIcon, Telescope, FileText, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 type ViewTab = 'distribution' | 'trend' | 'habits' | 'radar' | 'forecast';
 
@@ -71,6 +72,20 @@ export default function AnalyticsPage() {
       <Header title="Analytics" showBack />
       <div className="p-4 space-y-4 pb-24">
         <PeriodFilter preset={preset} onChange={setPreset} customRange={customRange} onCustomRangeChange={setCustomRange} />
+
+        <Link
+          href="/report"
+          className="flex items-center gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+        >
+          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+            <FileText className="w-4 h-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Rapport détaillé</p>
+            <p className="text-xs text-muted-foreground">Conseils personnalisés, triables par compte et par période</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </Link>
 
         <StatsSummary
           totalExpense={totalExpense}
