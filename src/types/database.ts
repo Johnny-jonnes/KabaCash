@@ -17,6 +17,29 @@ export interface DBSpace {
   deleted_at?: string | null;
 }
 
+// Un "niveau d'accès" est un code d'invitation supplémentaire, propre à l'espace,
+// qui porte son propre jeu de permissions : quiconque rejoint avec CE code reçoit
+// automatiquement ces droits (copiés sur sa ligne space_members au moment de
+// l'adhésion — voir migration 00010 join_space_with_code). Le code d'invitation
+// historique de l'espace (spaces.invite_code) continue de donner un accès membre
+// complet, sans rien casser pour l'existant.
+export interface DBSpaceInviteLevel {
+  id: string;
+  space_id: string;
+  label: string;
+  invite_code: string;
+  can_add_transaction: boolean;
+  can_manage_budgets: boolean;
+  can_invite_members: boolean;
+  can_view_all_accounts: boolean;
+  spending_limit_per_txn?: number | null;
+  forbidden_categories?: string[] | null;
+  sync_status: SyncStatus;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
 export interface DBSpaceMember {
   id: string;
   space_id: string;

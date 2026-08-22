@@ -2,7 +2,7 @@ import { db } from '@/lib/db/dexie';
 import { createClient } from '@/lib/supabase/client';
 import { pullSpaceData } from '@/lib/sync/pull';
 import { logActivity } from '@/lib/db/activity-logger';
-import type { DBSpace, DBSpaceMember } from '@/types/database';
+import type { DBSpace, DBSpaceInviteLevel, DBSpaceMember } from '@/types/database';
 import type { SpaceType } from '@/types/enums';
 
 // La création/adhésion à un espace est la SEULE opération de l'app qui exige une
@@ -79,4 +79,49 @@ export async function removeMember(memberRowId: string, spaceId: string, chefUse
 
 export function getMySpaceMembership(spaceMembers: DBSpaceMember[], spaceId: string, userId: string): DBSpaceMember | undefined {
   return spaceMembers.find(m => m.space_id === spaceId && m.user_id === userId && !m.deleted_at);
+}
+
+export interface AccessLevelParams {
+  label: string;
+  canAddTransaction: boolean;
+  canManageBudgets: boolean;
+  canInviteMembers: boolean;
+  canViewAllAccounts: boolean;
+  spendingLimitPerTxn: number | null;
+  forbiddenCategories: string[];
+}
+
+/**
+ * Crée un code d'invitation supplémentaire portant son propre jeu de permissions
+ * ("niveau d'accès") : quiconque rejoint avec ce code reçoit automatiquement ces
+ * droits (voir join_space_with_code, migration 00010) — chef uniquement.
+ */
+export async function createAccessLevel(spaceId: string, params: AccessLevelParams): Promise<DBSpaceInviteLevel> {
+  requireOnline();
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('create_space_access_level', {
+    p_space_id: spaceId,
+    p_label: params.label,
+    p_can_add_transaction: params.canAddTransaction,
+    p_can_manage_budgets: params.canManageBudgets,
+    p_can_invite_members: params.canInviteMembers,
+    p_can_view_all_accounts: params.canViewAllAccounts,
+    p_spending_limit_per_txn: params.spendingLimitPerTxn,
+    p_forbidden_categories: params.forbiddenCategories,
+  });
+  if (error) throw new Error(error.message);
+
+  const level = data as DBSpaceInviteLevel;
+  await db.spaceInviteLevels.put({ ...level, sync_status: 'synced' });
+  return level;
+}
+
+export async function deleteAccessLevel(levelId: string): Promise<void> {
+  requireOnline();
+  const supabase = createClient();
+  const now = new Date().toISOString();
+  const { error } = await supabase.from('space_invite_levels').update({ deleted_at: now }).eq('id', levelId);
+  if (error) throw new Error(error.message);
+
+  await db.spaceInviteLevels.update(levelId, { deleted_at: now, sync_status: 'synced' });
 }

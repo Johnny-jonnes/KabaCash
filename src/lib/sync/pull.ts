@@ -42,6 +42,10 @@ export async function pullSpaceData(spaceId: string): Promise<void> {
   const { data: members } = await supabase.from('space_members').select('*').eq('space_id', spaceId).is('deleted_at', null);
   if (members) for (const m of members) await mergeRow(db.spaceMembers as Table<unknown, string>, m);
 
+  // RLS ne renvoie ces lignes qu'au chef (voir migration 00010) : sans effet pour un membre.
+  const { data: levels } = await supabase.from('space_invite_levels').select('*').eq('space_id', spaceId).is('deleted_at', null);
+  if (levels) for (const l of levels) await mergeRow(db.spaceInviteLevels as Table<unknown, string>, l);
+
   const { data: space } = await supabase.from('spaces').select('*').eq('id', spaceId).maybeSingle();
   if (space) await mergeRow(db.spaces as Table<unknown, string>, space);
 }

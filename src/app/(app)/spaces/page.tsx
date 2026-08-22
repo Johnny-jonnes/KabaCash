@@ -14,10 +14,11 @@ import { JoinSpaceForm } from '@/components/spaces/JoinSpaceForm';
 import { MemberSpendingReport } from '@/components/spaces/MemberSpendingReport';
 import { MergeAccountDialog } from '@/components/accounts/MergeAccountDialog';
 import { MemberPermissionsDialog } from '@/components/spaces/MemberPermissionsDialog';
-import { leaveSpace, removeMember } from '@/lib/spaces/spaceActions';
+import { AccessLevelDialog } from '@/components/spaces/AccessLevelDialog';
+import { leaveSpace, removeMember, deleteAccessLevel } from '@/lib/spaces/spaceActions';
 import { formatAmount } from '@/lib/finance/format';
 import { resolveSpacePermissions } from '@/lib/spaces/permissions';
-import { Users, Briefcase, Plus, KeyRound, Copy, LogOut, UserMinus, Crown, Wallet, ArrowRightLeft, ShieldCheck } from 'lucide-react';
+import { Users, Briefcase, Plus, KeyRound, Copy, LogOut, UserMinus, Crown, Wallet, ArrowRightLeft, ShieldCheck, Tag, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DBAccount, DBSpace, DBSpaceMember } from '@/types/database';
 
@@ -29,6 +30,7 @@ export default function SpacesPage() {
   const [detailSpace, setDetailSpace] = useState<DBSpace | null>(null);
   const [accountToMerge, setAccountToMerge] = useState<DBAccount | null>(null);
   const [memberForPermissions, setMemberForPermissions] = useState<DBSpaceMember | null>(null);
+  const [isAccessLevelOpen, setIsAccessLevelOpen] = useState(false);
 
   const memberships = useLiveQuery(() =>
     db.spaceMembers.where('user_id').equals(user?.id ?? '').filter(m => !m.deleted_at).toArray()
@@ -42,6 +44,10 @@ export default function SpacesPage() {
   const myMembershipInDetail = allMembers.find(m => m.user_id === user?.id);
   const myRoleInDetail = myMembershipInDetail?.role;
   const myPermissionsInDetail = resolveSpacePermissions(myMembershipInDetail);
+
+  const accessLevels = useLiveQuery(() =>
+    db.spaceInviteLevels.where('space_id').equals(detailSpace?.id ?? '').filter(l => !l.deleted_at).toArray()
+  , [detailSpace?.id]) || [];
 
   const allAccounts = useLiveQuery(() => db.accounts.toArray()) || [];
   const spaceAccounts = allAccounts.filter(a => a.space_id === detailSpace?.id && !a.deleted_at);
@@ -75,6 +81,15 @@ export default function SpacesPage() {
     try {
       await removeMember(memberId, detailSpace.id, user.id);
       toast.success('Membre retiré');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Une erreur est survenue');
+    }
+  };
+
+  const handleDeleteLevel = async (levelId: string) => {
+    try {
+      await deleteAccessLevel(levelId);
+      toast.success('Niveau d\'accès supprimé');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Une erreur est survenue');
     }
@@ -167,6 +182,49 @@ export default function SpacesPage() {
                 </div>
               )}
 
+              {myRoleInDetail === 'chef' && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Niveaux d&apos;accès ({accessLevels.length})
+                    </p>
+                    <button
+                      onClick={() => setIsAccessLevelOpen(true)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Créer
+                    </button>
+                  </div>
+                  {accessLevels.length === 0 ? (
+                    <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-3">
+                      Créez un code par rôle (ex: Vendeur, Comptable) : chacun donne automatiquement les permissions que vous avez définies, dès l&apos;adhésion.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {accessLevels.map(level => (
+                        <div key={level.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Tag className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm truncate">{level.label}</p>
+                              <p className="text-[10px] text-muted-foreground font-mono tracking-widest">{level.invite_code}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => copyCode(level.invite_code)} title="Copier le code" className="p-1.5 text-muted-foreground hover:text-primary transition-colors">
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleDeleteLevel(level.id)} title="Supprimer ce niveau" className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {spaceAccounts.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -255,6 +313,14 @@ export default function SpacesPage() {
         onOpenChange={(open) => !open && setMemberForPermissions(null)}
         member={memberForPermissions}
       />
+
+      {detailSpace && (
+        <AccessLevelDialog
+          open={isAccessLevelOpen}
+          onOpenChange={setIsAccessLevelOpen}
+          spaceId={detailSpace.id}
+        />
+      )}
     </>
   );
 }

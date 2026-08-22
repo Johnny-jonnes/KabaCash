@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { DBAccount, DBActivityLog, DBBudget, DBBudgetPeriod, DBCategory, DBNotification, DBPlannedEntry, DBRecurringTransaction, DBSavingsGoal, DBSpace, DBSpaceMember, DBSyncQueueItem, DBTransaction, DBTransactionTemplate } from '@/types/database';
+import { DBAccount, DBActivityLog, DBBudget, DBBudgetPeriod, DBCategory, DBNotification, DBPlannedEntry, DBRecurringTransaction, DBSavingsGoal, DBSpace, DBSpaceInviteLevel, DBSpaceMember, DBSyncQueueItem, DBTransaction, DBTransactionTemplate } from '@/types/database';
 
 export class KabaCashDB extends Dexie {
   accounts!: Table<DBAccount>;
@@ -16,6 +16,7 @@ export class KabaCashDB extends Dexie {
   spaces!: Table<DBSpace>;
   spaceMembers!: Table<DBSpaceMember>;
   plannedEntries!: Table<DBPlannedEntry>;
+  spaceInviteLevels!: Table<DBSpaceInviteLevel>;
 
   constructor() {
     super('KabaCashDB');
@@ -135,6 +136,26 @@ export class KabaCashDB extends Dexie {
       spaces: 'id, owner_id, invite_code, sync_status, deleted_at',
       spaceMembers: 'id, space_id, user_id, role, sync_status, deleted_at',
       plannedEntries: 'id, user_id, space_id, planned_date, status, sync_status, deleted_at',
+    });
+
+    // Version 9 : niveaux d'accès par code d'invitation (chaque code = un jeu de
+    // permissions prédéfini, appliqué automatiquement au membre qui rejoint avec ce code)
+    this.version(9).stores({
+      accounts: 'id, user_id, space_id, type, sync_status, deleted_at',
+      transactions: 'id, user_id, space_id, account_id, category_id, type, transaction_date, created_at, sync_status, deleted_at',
+      categories: 'id, user_id, type, is_default, is_active, sync_status, deleted_at',
+      budgets: 'id, user_id, space_id, category_id, period_type, sync_status, deleted_at',
+      budgetPeriods: 'id, budget_id, user_id, start_date, end_date, sync_status',
+      recurringTransactions: 'id, user_id, next_occurrence, is_active, sync_status, deleted_at',
+      activityLogs: 'id, user_id, entity_type, entity_id, created_at',
+      syncQueue: '++localId, entity_type, entity_id, operation, created_at',
+      transactionTemplates: 'id, user_id, sort_order, use_count, sync_status, deleted_at',
+      notifications: 'id, user_id, kind, read_at, created_at, sync_status, deleted_at',
+      savingsGoals: 'id, user_id, space_id, target_date, sort_order, sync_status, deleted_at',
+      spaces: 'id, owner_id, invite_code, sync_status, deleted_at',
+      spaceMembers: 'id, space_id, user_id, role, sync_status, deleted_at',
+      plannedEntries: 'id, user_id, space_id, planned_date, status, sync_status, deleted_at',
+      spaceInviteLevels: 'id, space_id, invite_code, sync_status, deleted_at',
     });
   }
 }
